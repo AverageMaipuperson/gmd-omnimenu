@@ -87,7 +87,7 @@
         "OK",\
         nullptr,\
         300.f\
-  scm-history-item:c%3A%5CUsers%5CUsuario%5CDownloads%5Ccmake-4.1.2%5Ccmake-4.1.2%5Cgmd-omnimenu?%7B%22repositoryId%22%3A%22scm0%22%2C%22historyItemId%22%3A%22ee256068c0b52f55f0546b473251bef3b771a79e%22%2C%22historyItemParentId%22%3A%2294f82f611075e9dd9b8e8d7b3b260b25ac1461c4%22%2C%22historyItemDisplayId%22%3A%22ee25606%22%7D  )->show();
+    )->show();
 
 
 #if GAME_VERSION >= GV_1_7
