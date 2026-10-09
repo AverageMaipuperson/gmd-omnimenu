@@ -71,6 +71,29 @@ void PlayerObject_update(PlayerObject* self, float dt) {
     if (hax.getModuleEnabled(ModuleID::JUMP_HACK)) {
         setOnGround(self, true);
     }
+
+    if (hax.getModuleEnabled(ModuleID::TABBIRUS))
+    {
+        self->setColor(ccc3(234,7,114));
+        self->setSecondColor(ccc3(41, 239, 137));
+
+        #if GAME_VERSION > GV_1_4
+        if (self->getBirdMode())
+            self->updatePlayerBirdFrame(1);
+        else
+        #endif
+        #if GAME_VERSION > GV_1_3
+            self->updatePlayerShipFrame(1);
+        #endif
+
+        #if GAME_VERSION > GV_1_3
+        if (self->getRollMode())
+            self->updatePlayerRollFrame(1);
+        else
+        #endif
+            self->updatePlayerFrame(8);
+        
+    }
 }
 void (*TRAM_PlayerObject_hitGround)(PlayerObject* self, bool b1);
 void PlayerObject_hitGround(PlayerObject* self, bool b1) {
@@ -173,6 +196,37 @@ void PlayerObject_togglePlayerScale(PlayerObject* self, bool mini) {
 }
 #endif
 
+void (*PlayerObject_spawnPortalCircle)(PlayerObject*, _ccColor3B, float);
+void PlayerObject_spawnPortalCircle_H(PlayerObject* self, _ccColor3B color, float unk)
+{
+    auto& hax = HaxManager::sharedState();
+    if(hax.doSpawnCircles) PlayerObject_spawnPortalCircle(self, color, unk);
+}
+
+void (*PlayerObject_spawnScaleCircle)(PlayerObject*);
+void PlayerObject_spawnScaleCircle_H(PlayerObject* self)
+{
+    auto& hax = HaxManager::sharedState();
+
+    if (hax.doSpawnCircles) PlayerObject_spawnScaleCircle(self);
+}
+
+bool (*PlayerObject_init)(PlayerObject*, int, int, CCLayer*);
+bool PlayerObject_init_H(PlayerObject* self, int frame, int shipFrame, CCLayer* layer)
+{
+    auto& hax = HaxManager::sharedState();
+
+    if (hax.getModuleEnabled(ModuleID::TABBIRUS))
+    {
+        PlayerObject_init(self, 8, 1, layer);
+        self->setColor(ccc3(234,7,114));
+        self->setSecondColor(ccc3(41, 239, 137));
+        return true;
+    }
+
+    return PlayerObject_init(self, frame, shipFrame, layer);
+}
+
 void PlayerObject_om() {
     Omni::hook("_ZN12PlayerObject14activateStreakEv",
         reinterpret_cast<void*>(PlayerObject_activateStreak),
@@ -214,6 +268,18 @@ void PlayerObject_om() {
     Omni::hook("_ZN12PlayerObject17levelFlipFinishedEv",
         reinterpret_cast<void*>(PlayerObject_levelFlipFinished),
         reinterpret_cast<void**>(&TRAM_PlayerObject_levelFlipFinished));
+    Omni::hook("_ZN12PlayerObject17spawnPortalCircleEN7cocos2d10_ccColor3BEf",
+        reinterpret_cast<void*>(PlayerObject_spawnPortalCircle_H),
+        reinterpret_cast<void**>(&PlayerObject_spawnPortalCircle)
+    );
+    Omni::hook("_ZN12PlayerObject16spawnScaleCircleEv",
+        reinterpret_cast<void*>(PlayerObject_spawnScaleCircle_H),
+        reinterpret_cast<void**>(&PlayerObject_spawnScaleCircle)
+    );
+    Omni::hook("_ZN12PlayerObject4initEiiPN7cocos2d7CCLayerE",
+        reinterpret_cast<void*>(PlayerObject_init_H),
+        reinterpret_cast<void**>(&PlayerObject_init)
+    );
 #if GAME_VERSION == GV_1_4
     Omni::hook("_ZN12PlayerObject13toggleFlyModeEb",
         reinterpret_cast<void*>(PlayerObject_toggleFlyMode),

@@ -7,5 +7,6 @@
 class LocalLevelManager : public cocos2d::CCNode {
 public:
     static LocalLevelManager* sharedState();
+    CCArray* getLocalLevels() const;
 };
 #endif

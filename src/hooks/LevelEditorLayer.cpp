@@ -60,8 +60,68 @@ void LevelEditorLayer_update(LevelEditorLayer* self, float dt) {
 
         }
     }
+
+    #if GAME_VERSION > GV_1_6
+
+    static CCArray* ignore = nullptr;
+    if (!ignore)
+    {
+        ignore = CCArray::create();
+        ignore->retain();
+    }
+
+    auto sections = getEditorSections(self);
+    auto gridLayer = getGridLayer(self);
+
+    for (auto i = 0 ; i < sections->count() ; i++)
+    {
+        auto section = (CCArray*)sections->objectAtIndex(i);
+        for (auto j = 0 ; j < section->count() ; j++)
+        {
+            auto obj = (GameObject*)section->objectAtIndex(j);
+
+            auto minX = obj->getPositionX() - (obj->getObjectRect().size.width * obj->getAnchorPoint().x);
+            auto maxX = obj->getPositionX() + (obj->getObjectRect().size.width * (1.0f - obj->getAnchorPoint().x));
+
+            if (g_lineX >= minX && !ignore->containsObject(obj) && g_playback)
+            {
+                switch (getObjectKey(obj))
+                {
+                    case 200: // x0.5 speed portal
+                        g_speedMult = .7;
+                        break;
+                    case 201: // x1.0 speed portal
+                        g_speedMult = .9;
+                        break;
+                    case 202: // x2.0 speed portal
+                        g_speedMult = 1.1;
+                        break;
+                    case 203: // x3.0 speed portal
+                        g_speedMult = 1.3;
+                        break;
+                }
+
+                ignore->addObject(obj);
+            }
+        }
+    }
+
+    #endif
+
     if (g_playback) 
         g_lineX += dt * 342.6f * g_speedMult;
+#if GAME_VERSION > GV_1_6
+    else
+    {
+        switch (getStartSpeed(getEditorSettingsObject(self)))
+        {
+            case 1: g_speedMult = 0.7; break;
+            case 2: g_speedMult = 1.1; break;
+            case 3: g_speedMult = 1.3; break;
+        }
+        ignore->removeAllObjects();
+    }
+#endif
 }
 #endif
 
@@ -80,6 +140,11 @@ bool LevelEditorLayer_init(LevelEditorLayer* self, GJGameLevel* level) {
     setFreeBuild(hax.getModuleEnabled(ModuleID::FREE_BUILD));
 
     if (!TRAM_LevelEditorLayer_init(self, level)) return false;
+
+    if (hax.getModuleEnabled(ModuleID::HIDE_ICON_ON_EDITOR) && hax.getModuleEnabled(ModuleID::FLOATING_ICON) && hax.omniMenu) {
+        hax.omniMenu->m_sMenu->setVisible(false);
+        hax.omniMenu->m_sMenu->setEnabled(false);
+    }
 
 #if GAME_VERSION < GV_1_8
     if (hax.getModuleEnabled(ModuleID::_16K_FIX) || hax.getModuleEnabled(ModuleID::AUDIO_PLAYBACK)) {

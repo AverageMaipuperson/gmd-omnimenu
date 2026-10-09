@@ -23,6 +23,8 @@ public:
     void updateUserScore();
     void getLeaderboardScores(char const*);
     cocos2d::CCArray* getStoredOnlineLevels(char const*);
+    CCArray* getSavedLevels();
+    CCArray* getLocalLevels() const;
 #if GAME_VERSION > GV_1_0
     void resetTimerForKey(const char* key);
     bool hasLikedItem(LikeItemType, int, bool);

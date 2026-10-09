@@ -21,8 +21,19 @@ static CCNode* g_gameLayer = nullptr;
 static CCMenuItemSpriteExtra* g_playBtn = nullptr;
 static CCMenuItemSpriteExtra* g_stopBtn = nullptr;
 static float g_speedMult = 0.9f;
+static CCMenuItemSpriteExtra* g_deleteSelected = nullptr;
+static CCSprite* g_dsSpr = nullptr;
 
 void EditorUI::onPlay(CCObject*) {
+#if GAME_VERSION > GV_1_6
+    switch (getStartSpeed(getEditorSettingsObject(getUIEditorLayer(this))))
+    {
+        case 1: g_speedMult = 0.7; break;
+        case 2: g_speedMult = 1.1; break;
+        case 3: g_speedMult = 1.3; break;
+    }
+#endif
+
     auto lel = getUIEditorLayer(this);
     auto grid = getGridLayer(lel);
     g_gameLayer = MEMBER_BY_OFFSET(CCNode*, lel, LevelEditorLayer__m_gameLayer);
@@ -32,10 +43,100 @@ void EditorUI::onPlay(CCObject*) {
     g_playback = true;
     auto eng = CocosDenshion::SimpleAudioEngine::sharedEngine();
 
+#if GAME_VERSION > GV_1_6
+    auto maxX = 0;
+        
+    if (lel->getSectionCount() > 0 && getObjectCount(lel) > 0)
+    {
+        CCArray* lastSection;
+        for (int j = lel->getSectionCount() - 1; j > 0; j--)
+        {
+            lastSection = static_cast<CCArray*>(getEditorSections(lel)->objectAtIndex(j));
+            if (lastSection && lastSection->count() > 0) break;
+        }
+        if (lastSection && lastSection->count() > 0)
+        {
+            for (int i = 0; i < lastSection->count(); i++)
+            {
+                auto obj = static_cast<GameObject*>(lastSection->objectAtIndex(i));
+                if (obj->getPosition().x > maxX)
+                    maxX = obj->getPosition().x;
+            }
+        }
+    }
+
+    auto speeds = getSpeedObjects(getGridLayer(lel));
+    auto speedsSorted = CCArray::create();
+    speedsSorted->initWithArray(speeds);
+
+    std::sort(speedsSorted->data->arr, speedsSorted->data->arr + speedsSorted->data->num, compareXes2);
+
+    float mult = 0.9f;
+    switch (getStartSpeed(getEditorSettingsObject(lel))) {
+        case 1: mult = 0.7f; break;
+        case 2: mult = 1.1f; break;
+        case 3: mult = 1.3f; break;
+    }
+
+    auto time = 346.2 / (346.2 * mult); 
+    auto lastX = 346.2;
+    auto reachedLine = false;
+
+    if (g_lineX <= 346.2)
+    {
+        time = (g_lineX < 0) ? 0 : (g_lineX / (346.2 * mult));
+        reachedLine = true;
+    } else
+    {
+        for (int i = 0; i < speedsSorted->count(); i++) {
+            auto obj = static_cast<GameObject*>(speedsSorted->data->arr[i]);
+            float portalX = obj->getPositionX();
+
+            if (obj->getPositionX() < 346.2) {
+                switch (getObjectKey(obj)) {
+                    case 200: mult = 0.7f; break;
+                    case 201: mult = 0.9f; break;
+                    case 202: mult = 1.1f; break;
+                    case 203: mult = 1.3f; break;
+                }
+                continue;
+            }
+
+            if (portalX > g_lineX)
+            {
+                time += (g_lineX - lastX) / (346.2f * mult);
+                lastX = g_lineX;
+                reachedLine = true;
+                break;
+            }
+
+            time += (portalX - lastX) / (346.2f * mult);
+            lastX = portalX;
+
+            switch (getObjectKey(obj))
+            {
+                case 200: mult = 0.7f; break;
+                case 201: mult = 0.9f; break;
+                case 202: mult = 1.1f; break;
+                case 203: mult = 1.3f; break;
+            }
+        }
+    }
+
+    if (!reachedLine) 
+        time += (g_lineX - lastX) / (346.2f * mult);
+
+#endif
+
     eng->playBackgroundMusic(
         LevelTools::getAudioFileName(getAudioTrack(getEditorSettingsObject(lel)))
     );
+
+#if GAME_VERSION > GV_1_6
+    eng->setBackgroundMusicTime((g_lineX < 0) ? 0 : time);
+#else
     eng->setBackgroundMusicTime((g_lineX < 0) ? 0 : g_lineX / 311.58f);
+#endif
 
     CCLog("[OMNIMENU]: supposed time: %.1f", g_lineX / 311.58f);
 
@@ -54,6 +155,15 @@ void EditorUI::stopMusic(CCObject*) {
 
     g_stopBtn->setVisible(false);
     g_stopBtn->setEnabled(false);
+
+#if GAME_VERSION > GV_1_6
+    switch (getStartSpeed(getEditorSettingsObject(getUIEditorLayer(this))))
+    {
+        case 1: g_speedMult = 0.7; break;
+        case 2: g_speedMult = 1.1; break;
+        case 3: g_speedMult = 1.3; break;
+    }
+#endif
 }
 #endif
 
@@ -289,6 +399,11 @@ void EditorUI::onDeleteSelected() {
         this->deselectAll();
     }
     updateObjectInfoLabel(this);
+    if (g_deleteSelected)
+    {
+        g_dsSpr->setOpacity(127);
+        g_deleteSelected->setEnabled(false);
+    }
 }
 #endif // GAME_VERSION < GV_1_5
 
@@ -392,22 +507,33 @@ void EditorUI_setupDeleteMenu(EditorUI* self) {
     HaxManager& hax = HaxManager::sharedState();
     CCMenu* menu = getEditorUIButtonMenu(self);
 #if GAME_VERSION < GV_1_6
-    if (hax.getModuleEnabled(ModuleID::DELETE_START_POS)) {
 
         if (!menu || menu == nullptr) { // useless failsafe but i don't like removing those
             TRAM_EditorUI_setupDeleteMenu(self);
             menu = getEditorUIButtonMenu(self);
         }
 
-        auto delSPSpr = ButtonSprite::create("Delete Start Pos", 85, 0, 0.6, false, "bigFont.fnt", "GJ_button_04.png");
-        // delSelSpr->setScale(0.8f);
+#if GAME_VERSION < GV_1_5
+        if (hax.getModuleEnabled(ModuleID::DELETE_SELECTED))
+        {
+            auto spr = ButtonSprite::create("Delete Selected", 85, 0, 0.6, false, "bigFont.fnt", "GJ_button_04.png");
+            g_dsSpr = spr;
+            auto btn = CCMenuItemSpriteExtra::create(spr, spr, self, menu_selector(EditorUI::onDeleteSelected));
+            g_deleteSelected = btn;
 
-        auto delSPBtn = CCMenuItemSpriteExtra::create(delSPSpr, delSPSpr, self, menu_selector(EditorUI::onDeleteStartPos));
-        menu->addChild(delSPBtn);
-#if GAME_VERSION == GV_1_5
+            menu->addChild(btn);
+        }
+#endif
+
+        if (hax.getModuleEnabled(ModuleID::DELETE_START_POS)) {
+            auto delSPSpr = ButtonSprite::create("Delete Start Pos", 85, 0, 0.6, false, "bigFont.fnt", "GJ_button_04.png");
+            // delSelSpr->setScale(0.8f);
+
+            auto delSPBtn = CCMenuItemSpriteExtra::create(delSPSpr, delSPSpr, self, menu_selector(EditorUI::onDeleteStartPos));
+            menu->addChild(delSPBtn);
+        }
+
         menu->alignItemsHorizontallyWithPadding(10);
-#endif 
-    }
 #endif
     if (hax.getModuleEnabled(ModuleID::SELECT_FILTER)) {
         auto winSize = CCDirector::sharedDirector()->getWinSize();
@@ -1126,6 +1252,12 @@ void EditorUI_selectObject(EditorUI* self, GameObject* obj) {
     if (hax.objectIDFilter != 0 && getObjectKey(obj) != hax.objectIDFilter) return;
     TRAM_EditorUI_selectObject(self, obj);
     updateObjectInfoLabel(self);
+
+    if (g_deleteSelected)
+    {
+        g_dsSpr->setOpacity(255);
+        g_deleteSelected->setEnabled(true);
+    }
 }
 void (*TRAM_EditorUI_selectObjectsInRect)(EditorUI* self, CCRect rect);
 void EditorUI_selectObjectsInRect(EditorUI* self, CCRect rect) {
@@ -1150,17 +1282,32 @@ void EditorUI_selectObjectsInRect(EditorUI* self, CCRect rect) {
         TRAM_EditorUI_selectObjectsInRect(self, rect);
     }
     updateObjectInfoLabel(self);
+    if (g_deleteSelected)
+    {
+        g_dsSpr->setOpacity(255);
+        g_deleteSelected->setEnabled(true);
+    }
 }
 void (*TRAM_EditorUI_deselectObject)(EditorUI* self);
 void EditorUI_deselectObject(EditorUI* self) {
     TRAM_EditorUI_deselectObject(self);
     updateObjectInfoLabel(self);
+    if (g_deleteSelected)
+    {
+        g_dsSpr->setOpacity(127);
+        g_deleteSelected->setEnabled(false);
+    }
 }
 #if GAME_VERSION < GV_1_7
 void (*TRAM_EditorUI_deselectAll)(EditorUI* self);
 void EditorUI_deselectAll(EditorUI* self) {
     TRAM_EditorUI_deselectAll(self);
     updateObjectInfoLabel(self);
+    if (g_deleteSelected)
+    {
+        g_dsSpr->setOpacity(127);
+        g_deleteSelected->setEnabled(false);
+    }
 }
 #else
 void (*TRAM_EditorUI_deselectAll)(EditorUI* self, CCObject* sender);
@@ -1263,6 +1410,7 @@ void EditorUI_destructor(EditorUI* self) {
 #if GAME_VERSION < GV_1_8
     filterSpr = nullptr;
     filterBtnSpr = nullptr;
+    g_deleteSelected = nullptr;
 #endif
     TRAM_EditorUI_destructor(self);
 }

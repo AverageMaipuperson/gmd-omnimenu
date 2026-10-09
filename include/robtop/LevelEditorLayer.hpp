@@ -25,6 +25,7 @@ public:
     void addToUndoList(UndoObject*);
     void removeObject(GameObject*);
     int getSectionCount();
+    GJGameLevel* getLevel() const;
     GameObject* objectAtPosition(cocos2d::CCPoint point);
 #if GAME_VERSION >= GV_1_6
     void addObjectFromString(std::string);

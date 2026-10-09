@@ -1,3 +1,4 @@
+// disclaimer: breaks horribly in 1.7
 #include "HaxButton.hpp"
 #include <cocos2d.h>
 #include "HaxMenu.hpp"
@@ -17,10 +18,10 @@ HaxButton* HaxButton::create() {
 
 void HaxButton::onOpenMenu(CCObject*) {
     auto haxOverlay = HaxMenu::create(this); //HaxOverlay::create(this);
-#if GAME_VERSION < GV_1_7
-    MEMBER_BY_OFFSET(CCScene*, CCDirector::sharedDirector(), 0x98)->addChild(haxOverlay, 1000);
+#if GAME_VERSION > GV_1_6
+    MEMBER_BY_OFFSET(CCScene*, CCDirector::sharedDirector(), 0x98)->addChild(haxOverlay, 10);
 #else
-    CCDirector::sharedDirector()->getRunningScene()->addChild(haxOverlay, 1000);
+    CCDirector::sharedDirector()->getRunningScene()->addChild(haxOverlay, 10);
 #endif
     m_sMenu->setEnabled(false);
     m_sMenu->setVisible(false);
@@ -67,14 +68,20 @@ bool HaxButton::init() {
 
 void HaxButton::fade(bool fill) {
     m_sMenu->stopAllActions(); 
-    GLubyte opacity = fill ? 255 : 128;
-    auto fade = CCFadeTo::create(0.2f, opacity);
+    auto fade = CCFadeTo::create(0.2f, fill ? 255 : 128);
     CCDirector::sharedDirector()->getActionManager()->addAction(fade, m_sMenu, false);
+}
+
+CCPoint HaxButton::clamp(CCPoint pos) {
+    auto winSize = CCDirector::sharedDirector()->getWinSize();
+    pos.x = std::max(-winSize.width / 2, std::min(pos.x, winSize.width / 2));
+    pos.y = std::max(-winSize.height / 2, std::min(pos.y, winSize.height / 2));
+    return pos;
 }
 
 bool HaxButton::ccTouchBegan(CCTouch* touch, CCEvent* event) {
     // touch dispatcher is dumb i had to replicate ccmenuitemspriteextra
-    if (!m_movable) return true;
+    if (!m_movable) return false;
     auto location = getTouchLocation(touch);
     // CCPoint location = CCDirector::sharedDirector()->convertToGL(touch->locationInView());
     CCPoint localPos = m_sSprite->convertToNodeSpace(location);
@@ -85,7 +92,7 @@ bool HaxButton::ccTouchBegan(CCTouch* touch, CCEvent* event) {
 #else
     if (CCRect::CCRectContainsPoint(rect, localPos)) {
 #endif
-        m_sSprite->activate();
+        // m_sSprite->activate();
         this->fade(true);
         return true; 
     }
@@ -106,7 +113,7 @@ void HaxButton::ccTouchMoved(CCTouch* touch, CCEvent* event) {
     CCLog("6");
     CCPoint currentPos = this->getPosition();
     CCLog("7");
-    this->setPosition(ccpAdd(currentPos, diff));
+    this->setPosition(clamp(ccpAdd(currentPos, diff)));
     CCLog("8");
     CCPoint localPos = m_sSprite->convertToNodeSpace(currentLoc);
     CCLog("9");

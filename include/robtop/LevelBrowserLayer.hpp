@@ -19,4 +19,6 @@ public:
     void loadLevel(GJGameLevel* level);
     void reload();
     void FLAlert();
+    void setupLevelBrowser(CCArray*);
+    void updateLevelsLabel();
 };

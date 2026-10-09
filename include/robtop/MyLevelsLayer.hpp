@@ -12,4 +12,7 @@ public:
     void loadLevel(GJGameLevel* level);
     void reload();
     void FLAlert();
+    void setupLevelBrowser();
+    void onSearch(CCObject*);
+    void exitSearch();
 };

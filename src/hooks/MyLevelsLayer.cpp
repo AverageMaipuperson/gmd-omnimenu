@@ -2,6 +2,7 @@
 #include "GJGameLevel.hpp"
 #include "MyLevelsLayer.hpp"
 #include "EditLevelLayer.hpp"
+#include "SearchLayer.hpp"
 
 void MyLevelsLayer::onImport() {
     JNIEnv* env = getEnv();
@@ -101,10 +102,10 @@ bool (*TRAM_MyLevelsLayer_init)(MyLevelsLayer* self);
 bool MyLevelsLayer_init(MyLevelsLayer* self) {
     if (!TRAM_MyLevelsLayer_init(self)) return false;
     HaxManager& hax = HaxManager::sharedState();
+    auto director = CCDirector::sharedDirector();
+    auto winSize = director->getWinSize();
     if (hax.getModuleEnabled(ModuleID::GDSHARE)) {
         hax.myLevelsLayer = self;
-        auto director = CCDirector::sharedDirector();
-        auto winSize = director->getWinSize();
         CCMenu* importMenu = CCMenu::create();
         CCSprite* importSpr = cocos2d::CCSprite::create("gdshare_import.png");
         CCMenuItemSpriteExtra* importBtn = CCMenuItemSpriteExtra::create(importSpr, importSpr, self, menu_selector(MyLevelsLayer::onImport));
@@ -113,11 +114,76 @@ bool MyLevelsLayer_init(MyLevelsLayer* self) {
         importMenu->addChild(importBtn);
         importMenu->setPosition(ccp(winSize.width - 30.f, winSize.height - 90.f));
     }
+
+    
+#if GAME_VERSION < GV_1_4
+    if (hax.getModuleEnabled(ModuleID::PAGE_CONTROLS))
+    {
+        auto menu = CCMenu::create();
+        menu->setPosition(ccp(0,0));
+        self->addChild(menu);
+
+        auto spr = CCSprite::create("gj_findBtn_001.png");
+        auto btn = CCMenuItemSpriteExtra::create(
+            spr,
+            spr,
+            self,
+            menu_selector(MyLevelsLayer::onSearch)
+        );
+        btn->setPosition(ccp(25, winSize.height - 65));
+        menu->addChild(btn);
+
+        spr = CCSprite::create("gj_findBtnOff_001.png");
+        btn = CCMenuItemSpriteExtra::create(
+            spr,
+            spr,
+            self,
+            menu_selector(MyLevelsLayer::exitSearch)
+        );
+        btn->setPosition(ccp(25, winSize.height - 105));
+        btn->setVisible(false);
+        btn->setEnabled(false);
+        g_exitSearchBtn = btn;
+        menu->addChild(btn);
+    }
+#endif
+
     return true;
 }
+
+#if GAME_VERSION < GV_1_4
+void MyLevelsLayer::onSearch(CCObject*)
+{
+    MLLSearchLayer::create(this)->show();
+}
+
+void MyLevelsLayer::exitSearch()
+{
+    g_searchFilter = "";
+    g_filterArr = nullptr;
+    this->setupLevelBrowser();
+
+    g_exitSearchBtn->setVisible(false);
+    g_exitSearchBtn->setEnabled(false);
+}
+
+void (*MyLevelsLayer_destructor)(MyLevelsLayer*);
+void MyLevelsLayer_destructor_H(MyLevelsLayer* self)
+{
+    MyLevelsLayer_destructor(self);
+    g_searchFilter = "";
+    g_filterArr = nullptr;
+}
+#endif
 
 void MyLevelsLayer_om() {
     Omni::hook("_ZN13MyLevelsLayer4initEv",
         reinterpret_cast<void*>(MyLevelsLayer_init),
         reinterpret_cast<void**>(&TRAM_MyLevelsLayer_init));
+
+#if GAME_VERSION < GV_1_4
+    Omni::hook("_ZN13MyLevelsLayerD1Ev",
+        reinterpret_cast<void*>(MyLevelsLayer_destructor_H),
+        reinterpret_cast<void**>(&MyLevelsLayer_destructor));
+#endif
 }

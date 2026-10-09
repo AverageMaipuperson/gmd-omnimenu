@@ -57,6 +57,104 @@ bool F_isBackgroundMusicPlaying() {
     return playing;
 }
 
+void checkPortals()
+{
+    HaxManager& hax = HaxManager::sharedState();
+    auto player = getPlayer();
+    auto layer = getPlayLayer();
+    auto sections = getPlaySections();
+    std::vector<GameObject*> objects = {};
+
+    if(hax.startPosIndex == -1) return;
+    for (int i = 0 ; i < sections->count() ; i++)
+    {
+        auto section = (CCArray*)sections->objectAtIndex(i);
+        for (int i = 0 ; i < section->count() ; i++)
+        {
+            auto obj = (GameObject*)section->objectAtIndex(i);
+            objects.push_back(obj);
+        }
+    }
+
+    auto filtered = filterObjects(objects, {10,11,12,13,45,46,47,99,101,111});
+    if(filtered.empty()) return;
+
+    std::sort(filtered.begin(), filtered.end(), [](GameObject* a, GameObject* b)
+    {
+        return a->getPositionX() < b->getPositionX();
+    });
+
+    hax.doSpawnCircles = false;
+    for (auto object : filtered)
+    {
+        if (object->getPositionX() > player->getPositionX()) continue;
+        switch(getObjectType(object))
+        {
+            case 5: // ship
+#if GAME_VERSION > GV_1_4
+                layer->switchToFlyMode(object, true, false);
+                #else
+                layer->switchToFlyMode(object, true);
+#endif
+                break;
+            case 6: // cube
+                player->toggleFlyMode(false);
+#if GAME_VERSION > GV_1_4
+                player->toggleBirdMode(false);
+                #endif
+#if GAME_VERSION > GV_1_0
+                player->toggleRollMode(false);
+#if GAME_VERSION > GV_1_4
+                layer->exitAirMode();
+#else
+                layer->exitFlyMode();
+#endif
+                layer->exitRollMode();
+#endif
+                break;
+#if GAME_VERSION > GV_1_0
+            case 17: // ball
+                layer->switchToRollMode(object, true);
+                break;
+#endif
+#if GAME_VERSION > GV_1_3
+            case 18: // normal size
+                player->togglePlayerScale(false);
+                break;
+            case 19: // mini
+                player->togglePlayerScale(true);
+                break;
+#endif
+#if GAME_VERSION > GV_1_4
+            case 20: // ufo
+                layer->switchToFlyMode(object, false, true);
+                break;
+#endif
+#if GAME_VERSION > GV_1_6
+            case 21: // speed portals
+                switch (getObjectKey(object))
+                {
+                    case 200:
+                        player->updateTimeMod(0.7);
+                        break;
+                    case 201:
+                        player->updateTimeMod(0.9);
+                        break;
+                    case 202:
+                        player->updateTimeMod(1.1);
+                        break;
+                    case 203:
+                        player->updateTimeMod(1.3);
+                        break;
+                }
+                break;
+                
+#endif
+        }
+    }
+    hax.doSpawnCircles = true;
+}
+
 void (*TRAM_PlayLayer_destroyPlayer)(PlayLayer* self);
 void PlayLayer_destroyPlayer(PlayLayer* self) {
     HaxManager& hax = HaxManager::sharedState();
@@ -230,6 +328,7 @@ void PlayLayer::resetLevelLogic(PlayLayer* self) {
         hax.omniMenu->m_sMenu->setEnabled(false);
     }
     TRAM_PlayLayer_resetLevel(self);
+    if(hax.getModuleEnabled(ModuleID::SMART_START_POS)) checkPortals();
 
     CCNode* lastCheckpoint = self->getLastCheckpoint();
     if (lastCheckpoint != nullptr) {
@@ -527,6 +626,7 @@ void PlayLayer_update(PlayLayer* self, float dt) {
         getAttemptLabel(self)->setVisible(true);
     }
     if (hax.getModuleEnabled(ModuleID::NOCLIP_TINT_ON_DEATH) && hax.getModuleEnabled(ModuleID::NOCLIP)) {
+        hax.noclipTint->setColor(hax.noclipTintColor);
         if (hax.lastDeadFrame < hax.frameCount - 1 || hax.completed) {
             hax.ntOpacity -= 1500 * dt; // 335 * dt;
             if (hax.ntOpacity < 0) hax.ntOpacity = 0;
@@ -737,6 +837,7 @@ bool PlayLayer_init(PlayLayer* self, GJGameLevel* level) {
     auto SAE = CocosDenshion::SimpleAudioEngine::sharedEngine();
     hax.mbfEnabled = hax.getModuleEnabled(ModuleID::MUSIC_BUG_FIX);
     hax.areWeInPlayLayer = hax.mbfEnabled;
+    hax.doSpawnCircles = true;
     setDecimals('1');
     if (!TRAM_PlayLayer_init(self, level)) return false;
     if (SAE->getBackgroundMusicVolume() > 0 && hax.areWeInPlayLayer) {
@@ -767,6 +868,8 @@ bool PlayLayer_init(PlayLayer* self, GJGameLevel* level) {
     }
     hax.hitboxLayer = HitboxLayer::create(self);
     self->addChild(hax.hitboxLayer, 98);
+
+    if(hax.getModuleEnabled(ModuleID::SMART_START_POS)) checkPortals();
     return true;
 }
 void (*TRAM_PlayLayer_shakeCamera)(PlayLayer* self, float duration);
@@ -872,6 +975,17 @@ void PlayLayer_resume(PlayLayer* self) {
     if (!hax.dead || (getPlayLayerPractice(self) && !hax.getModuleEnabled(ModuleID::PRACTICE_MUSIC_HACK)) && !hax.quitPlayLayer) {
         F_resumeBackgroundMusic();
     }
+    if (hax.getModuleEnabled(ModuleID::HIDE_ICON_ON_PLAY) && hax.getModuleEnabled(ModuleID::FLOATING_ICON) && hax.omniMenu) {
+        hax.omniMenu->m_sMenu->setVisible(false);
+        hax.omniMenu->m_sMenu->setEnabled(false);
+    }
+}
+
+void (*PlayLayer_lightningFlash)(PlayLayer*, CCPoint, _ccColor3B);
+void PlayLayer_lightningFlash_H(PlayLayer* self, CCPoint point, _ccColor3B color)
+{
+    auto& hax = HaxManager::sharedState();
+    if(hax.doSpawnCircles) PlayLayer_lightningFlash(self, point, color);
 }
 
 void PlayLayer_om() {
@@ -940,4 +1054,7 @@ void PlayLayer_om() {
     // Omni::hook("_ZN9PlayLayer13toggleGlitterEb",
     //     reinterpret_cast<void*>(PlayLayer_toggleGlitter),
     //     reinterpret_cast<void**>(&TRAM_PlayLayer_toggleGlitter));
+    /*Omni::hook("_ZN9PlayLayer6resumeEv",
+        reinterpret_cast<void*>(PlayLayer_lightningFlash_H),
+        reinterpret_cast<void**>(&PlayLayer_lightningFlash));*/
 }

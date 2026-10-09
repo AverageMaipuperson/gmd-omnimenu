@@ -210,6 +210,13 @@ bool HaxMenu::init(CCLayer* referrer) {
         onSaveData(dummy_first_sender_param_1_7);
     } else {
         onCategory(hax.lastCategory);
+        onCategory(hax.lastCategory);
+    }
+
+    if (hax.omniMenu) 
+    {
+        hax.omniMenu->setTouchEnabled(false);
+        hax.omniMenu->m_movable = false;
     }
 
     return true;
@@ -274,10 +281,13 @@ void HaxMenu::addButton(const char* text, float fontSize, float yOffset, CCObjec
     item->setAnchorPoint({0, 0.5});
     item->setPosition(ccp(-25, 10 + yOffset));
 }
+// for some reason calling onCategory twice in a row fixes all the positioning issues with subcategories. dont ask why
 void HaxMenu::onPlayer(SEL_MenuHandler_1_7_compat) {
+    onCategory(ModuleCategory::Player);
     onCategory(ModuleCategory::Player);
 }
 void HaxMenu::onVisual(SEL_MenuHandler_1_7_compat) {
+    onCategory(ModuleCategory::Visual);
     onCategory(ModuleCategory::Visual);
 }
 void HaxMenu::onEditor(SEL_MenuHandler_1_7_compat) {
@@ -466,6 +476,258 @@ void HaxMenu::onImportData(CCObject* sender) {
     CCDirector::sharedDirector()->replaceScene(LoadingLayer::scene());
 }
 
+std::vector<Module*> getModulesBySC(ModuleSubcategory subcategory)
+{
+    auto& hax = HaxManager::sharedState();
+    std::vector<Module*> modules = {};
+
+    for (auto& record : hax.modules)
+    {
+        if (record.subcategory == subcategory) modules.push_back(&record);
+    }
+
+    return modules;
+}
+
+Module getModuleByOwner(ModuleSubcategory subcategory)
+{
+    auto& hax = HaxManager::sharedState();
+    Module module;
+
+    for (auto& record : hax.modules)
+    {
+        if (record.owner == subcategory) module = record;
+    }
+
+    return module;
+}
+
+void HaxMenu::toggleDropdown(ModuleSubcategory subcategory)
+{
+    CCLog("is it even called?");
+    auto modules = getModulesBySC(subcategory);
+    auto owner = getModuleByOwner(subcategory);
+    CCLog("yes");
+
+    auto toggler = static_cast<CCMenuItemToggler*>(static_cast<CCMenu*>(owner.node->getChildByTag(1001))->getChildByTag(1000));
+    auto b = !toggler->getIsActive();
+    
+    for (int i = 0 ; i < modules.size() ; i++)
+    {
+        auto record = modules[i];
+        if (!record->node) continue;
+
+        auto pos = record->node->getPosition();
+        if(record->node->getTag() != 1) record->node->setPosition(ccp(pos.x, pos.y - 16 * (i + 1)));
+        record->node->setTag(1);
+
+        auto menu = (CCMenu*)record->node->getChildByTag(1001);
+        auto children = menu->getChildren();
+        auto input = record->node->getChildByTag(1004);
+        if (input) input->setVisible(b);
+
+        else if (children->count() > 1) 
+        {
+            auto checkbox = static_cast<CCMenuItem*>(children->objectAtIndex(1));
+            if (checkbox)
+            {
+                checkbox->setVisible(b);
+                checkbox->setEnabled(b);
+            }
+        }
+
+        auto label = (CCLabelTTF*)record->node->getChildByTag(1006);
+        auto infoBtn = (CCMenuItemSpriteExtra*)children->objectAtIndex(0);
+
+        label->setVisible(b);
+        infoBtn->setVisible(b);
+        infoBtn->setEnabled(b);
+    }
+
+    this->drawBranches(owner, modules, b);
+    this->moveDown(owner, b);
+    this->redrawBranches();
+}
+
+
+CCNode* getAnchor(Module* record)
+{
+    auto input = record->node->getChildByTag(1004);
+    if (input) return input;
+
+    auto menu = (CCMenu*)record->node->getChildByTag(1001);
+    if (menu && menu->getChildrenCount() > 0)
+    {
+        if (menu->getChildrenCount() > 1) return (CCNode*)menu->getChildren()->objectAtIndex(1);
+        return (CCNode*)menu->getChildren()->objectAtIndex(0);
+    }
+    return nullptr;
+}
+
+
+void HaxMenu::drawBranches(Module& owner, const std::vector<Module*>& modules, bool visible)
+{
+    auto id = owner.owner;
+    auto it = this->branches.find(id);
+    if (it == this->branches.end()) {
+        auto newBranch = Branch::create();
+        this->branches[id] = newBranch;
+        this->rightParent->addChild(newBranch);
+    }
+
+    this->branches[id]->lines.clear();
+    this->branches[id]->m_show = visible;
+
+    if(!visible || modules.empty() || !owner.node) return;
+
+    auto menu = (CCMenu*)owner.node->getChildByTag(1001);
+    auto checkbox = (CCNode*)menu->getChildren()->objectAtIndex(0);
+    
+    auto absoluteY = owner.node->getPositionY() + checkbox->getPositionY();
+    auto start = ccp(-80, absoluteY - 6);
+    float lowest = start.y;
+
+    for (auto* record : modules) 
+    {
+        // some modules have their node set as nullptr which is GREAT
+        if (!record->node) continue;
+
+        auto node = getAnchor(record);
+        if (!node) continue;
+
+        auto y2 = record->node->getPositionY() + node->getPositionY();
+
+        auto branchStart = ccp(-80, y2);
+        auto branchEnd = ccp(-70, y2);
+        this->branches[id]->lines.push_back({branchStart, branchEnd});
+
+        if (y2 < lowest) lowest = y2;
+    }
+
+    auto end = ccp(-80, lowest);
+    this->branches[id]->lines.push_back({start, end});
+}
+
+void HaxMenu::redrawBranches()
+{
+    for (auto const& [id, canvas] : this->branches)
+    {
+        if (!canvas || !canvas->m_show) continue;
+
+        auto owner = getModuleByOwner(id);
+        auto modules = getModulesBySC(id);
+        if (!owner.node) continue;
+
+        canvas->lines.clear();
+
+        auto menu = (CCMenu*)owner.node->getChildByTag(1001);
+        auto checkbox = (CCNode*)menu->getChildren()->objectAtIndex(0);
+        
+        auto y = owner.node->getPositionY() + checkbox->getPositionY();
+        auto start = ccp(-80, y - 6);
+        auto lowest = start.y;
+
+        for (auto* record : modules) 
+        {
+            if (!record->node) continue;
+
+            auto node = getAnchor(record);
+            if (!node) continue;
+
+            auto y2 = record->node->getPositionY() + node->getPositionY();
+
+            auto branchStart = ccp(-80, y2);
+            auto branchEnd = ccp(-70, y2);
+            canvas->lines.push_back({branchStart, branchEnd});
+
+            if (y2 < lowest) lowest = y2;
+        }
+
+        auto end = ccp(-80, lowest);
+        canvas->lines.push_back({start, end});
+    }
+}
+
+void HaxMenu::moveDown(Module& pivot, bool down)
+{
+    if (!pivot.node) return;
+
+    auto& hax = HaxManager::sharedState();
+    auto menu = (CCMenu*)pivot.node->getChildByTag(1001);
+    auto checkbox = (CCNode*)menu->getChildren()->objectAtIndex(0);
+    
+    auto y = pivot.node->getPositionY() + checkbox->getPositionY();
+    auto count = getModulesBySC(pivot.owner).size();
+    auto shift = 16.f * count;
+
+    for (auto i = 0; i < hax.modules.size(); ++i)
+    {
+        auto& record = hax.modules[i];
+        if (!record.node) continue;
+        if (&record == &pivot || record.category != pivot.category || record.subcategory == pivot.owner) continue;
+
+        auto node = getAnchor(&record);
+        if (!node) continue;
+
+        auto y2 = record.node->getPositionY() + node->getPositionY();
+        if (y2 < y - 1.0f)
+        {
+            auto currentPos = record.node->getPosition();
+            record.node->setPosition(ccp(currentPos.x, currentPos.y + (down ? -shift : shift)));
+        }
+    }
+}
+
+CCTextInputNode* HaxMenu::createTheInput(Module& module, CCPoint pos)
+{
+    auto input = CCTextInputNode::create(30, 10, "", "Thonburi", 15, "bigFont.fnt");
+    MEMBER_BY_OFFSET(cocos2d::CCTextFieldTTF*, input, CCTextInputNode__m_textField)->setOpacity(200);
+    input->setPosition(pos);
+    input->setPosition(pos);
+    input->setPosition(pos);
+    input->setPosition(pos);
+    input->setPosition(pos);
+    input->setPosition(pos);
+    input->setPosition(pos);
+    input->setPosition(pos);
+    input->setPosition(pos);
+    input->setPosition(pos);
+    input->setPosition(pos);
+    input->setPosition(pos);
+    input->setPosition(pos);
+    input->setPosition(pos);
+    input->setMaxLabelScale(1);
+    input->setLabelPlaceholderScale(1);
+    input->setScale(0.5f);
+    setCharLimit(input, 4);
+    input->setAllowedChars("0123456789.");
+    input->setAnchorPoint({0, 0});
+    input->setString(module.inputReference->c_str());
+
+    return input;
+}
+
+void HaxMenu::setNoclipTintColor(_ccColor3B color)
+{
+    auto& hax = HaxManager::sharedState();
+    auto record = hax.modules[ModuleID::NOCLIP_TINT_COLOR];
+    hax.noclipTintColor = color;
+
+    auto menu = (CCMenu*)record.node->getChildByTag(1001);
+    auto btn = (CCMenuItemSpriteExtra*)menu->getChildByTag(1002);
+    auto spr = (CCSprite*)btn->getChildren()->objectAtIndex(0);
+
+    spr->setColor(color);
+}
+
+ColorPickerPopup* HaxMenu::colorPickerClosed(ColorPickerPopup* popup)
+{
+    auto& hax = HaxManager::sharedState();
+    this->setNoclipTintColor(popup->getColorValue());
+
+    return popup;
+}
+
 void HaxMenu::onCategory(ModuleCategory category) {
     auto& hax = HaxManager::sharedState();
     hax.lastCategory = category;
@@ -480,6 +742,9 @@ void HaxMenu::onCategory(ModuleCategory category) {
     float height = 20;
 
     int key = 0;
+
+    this->branches.clear();
+
     for (Module& record : hax.modules)
     {
         if (!record.exists) {
@@ -491,6 +756,8 @@ void HaxMenu::onCategory(ModuleCategory category) {
             continue;
         }
 
+        record.node = nullptr;
+
 #if GAME_VERSION > GV_1_0
         auto toggleOn = CCSprite::createWithSpriteFrameName("GJ_checkOn_001.png");
         auto toggleOff = CCSprite::createWithSpriteFrameName("GJ_checkOff_001.png");
@@ -498,30 +765,159 @@ void HaxMenu::onCategory(ModuleCategory category) {
         auto toggleOn = CCSprite::create("GJ_checkOn.png");
         auto toggleOff = CCSprite::create("GJ_checkOff.png");
 #endif
+        auto node = CCNode::create();
+        this->rightParent->addChild(node);
+        record.node = node;
 
-        auto checkbox = CCMenuItemToggler::create(toggleOn, toggleOff, this, menu_selector(HaxMenu::toggler));
-        checkbox->toggle(!record.enabled);
-        checkbox->setScale(0.5f);
-        checkbox->setTag(key);
-        this->modMenu->addChild(checkbox, 1003);
-        checkbox->setPosition({-100, winSize.height / 2 + y});
+        auto menu = CCMenu::create();
+        menu->setPosition(ccp(20,0));
+        node->addChild(menu, 100, 1001);
+
+        auto right = 0;
+
+        CCMenuItemToggler* checkbox = nullptr;
+        CCMenuItemSpriteExtra* colorBtn = nullptr;
+        CCTextInputNode* input = nullptr;
 
         std::string labelValue = record.name;
         labelValue += " "; // italics font gets cut off grrrr
         auto label = CCLabelTTF::create(labelValue.c_str(), "Helvetica-Oblique.ttf", 11);
-        this->rightParent->addChild(label, 1003);
+        node->addChild(label, 1003);
         label->setAnchorPoint({0.f, 0.5f});
         label->setPosition(ccp(-68, winSize.height / 2 + y));
+        label->setTag(1006);
 
         CCSprite* infoSpr = createInfoSprite();
         infoSpr->setScale(0.6f);
         CCMenuItemSpriteExtra* infoBtn = CCMenuItemSpriteExtra::create(infoSpr, infoSpr, this, menu_selector(HaxMenu::modInfo));
         infoBtn->setSizeMult(1.5f);
         infoBtn->setPosition(ccp(-80 + label->getContentSize().width, winSize.height / 2 + y));
-        infoBtn->setTag(key);
-        this->modMenu->addChild(infoBtn, 1003);
-        y -= 16;
-        height += 16;
+        menu->addChild(infoBtn, 1003, key);
+
+        auto addX = 0;
+
+        switch (record.type)
+        {
+            case ModuleType::Toggler: {
+                checkbox = CCMenuItemToggler::create(toggleOn, toggleOff, this, menu_selector(HaxMenu::toggler));
+                checkbox->toggle(!record.enabled);
+                checkbox->setScale(0.5f);
+                checkbox->setTag(key);
+                menu->addChild(checkbox, 1003);
+                checkbox->setPosition({-100, winSize.height / 2 + y});
+                break;
+            }
+            case ModuleType::ColorPicker: {
+                auto spr = CCSprite::create("colorSquare.png");
+                spr->setScale(.2f);
+                spr->setColor(record.pickerColor);
+                colorBtn = (CCMenuItemSpriteExtra*)CCMenuItemExt::createWithSpriteExtra(
+                    spr,
+                    [this](CCObject*)
+                    {
+                        auto& hax = HaxManager::sharedState();
+
+                        #if GAME_VERSION < GV_1_7
+                            this->popup = ColorPickerPopup::create();
+                        #else
+                            this->popup = ColorPickerPopup::create(0,0,0);
+                        #endif
+                        this->popup->setDelegate(this);
+                        this->popup->selectColor(hax.noclipTintColor);
+
+                        this->addChild(popup, 1000);
+                    }
+                );
+                colorBtn->setPosition(ccp(-100, winSize.height / 2 + y));
+                colorBtn->setTag(1002);
+                menu->addChild(colorBtn);
+
+                if (!menu->getChildByTag(1002))
+                    CCLog("returns nullptr");
+                
+                break;
+            }
+            case ModuleType::NumberInput: {
+                // be a good boy and dont be positioned at 0,0
+                auto pos = ccp(29.99274612648, winSize.height / 2.6017264535457234 + y);
+                // pos = menu->convertToNodeSpace(pos);
+                
+                input = createTheInput(record, pos);
+                input->setTag(1004);
+                node->addChild(input, 100000000);
+                auto booba = *(CCTextFieldTTF**)((char*)input + CCTextInputNode__m_textField);
+                booba->setPosition(ccp(winSize.width / 2 + 100, winSize.height / 2 + y));
+                CCLog("x: %.2f ; y: %.2f", booba->getPositionX(), booba->getPositionY());
+                auto spr = CCSprite::create("three.png");
+                spr->setScale(.5f);
+                spr->setPosition(booba->getPosition());
+                // this->addChild(spr);
+                addX += 20;
+
+                break;
+            }
+
+        }
+
+        auto layoutY = y;
+
+        if (record.subcategory != ModuleSubcategory::None)
+        {
+            if (yPos.count(record.subcategory) > 0)
+            {
+                layoutY = yPos[record.subcategory];
+            }
+
+            if(checkbox != nullptr)
+            {
+                checkbox->setPosition({-80, winSize.height / 2 + layoutY});
+                checkbox->setVisible(false);
+                checkbox->setEnabled(false);
+            } else if (colorBtn != nullptr)
+            {
+                colorBtn->setPosition({-80, winSize.height / 2 + layoutY});
+                colorBtn->setVisible(false);
+                colorBtn->setEnabled(false);
+            } else if (input != nullptr)
+            {
+                input->setPosition(ccp(-80, winSize.height / 2 + layoutY));
+                input->setVisible(false);
+            }
+
+            label->setPosition(ccp(-48 + addX, winSize.height / 2 + layoutY));
+            infoBtn->setPosition(ccp(-60 + label->getContentSize().width + addX, winSize.height / 2 + layoutY));
+
+            label->setVisible(false);
+            infoBtn->setVisible(false);
+            infoBtn->setEnabled(false);
+        } else if(record.owner != ModuleSubcategory::None)
+        {
+            auto id = record.owner;
+
+            auto spr = CCSprite::create("GJ_plus3Btn_001.png");
+            spr->setScale(.3f);
+            auto spr2 = CCSprite::create("GJ_minusBtn_001.png");
+            spr2->setScale(.3f);
+
+            auto btn = CCMenuItemExt::createWithToggler(
+                spr,
+                spr2,
+                [record, this, id](CCObject*)
+                {
+                    toggleDropdown(id);
+                }
+            );
+            btn->setPosition(ccp(-65 + label->getContentSize().width, winSize.height / 2 + y));
+            menu->addChild(btn, 1004, 1000);
+
+            yPos[record.owner] = y;
+        }
+
+        if(record.subcategory == ModuleSubcategory::None)
+        {
+            y -= 16;
+            height += 16;
+        }
         key++;
     }
     if (category == ModuleCategory::Player) {
@@ -530,6 +926,7 @@ void HaxMenu::onCategory(ModuleCategory category) {
         this->addChild(respawnInput, 1003);
         hax.respawnInput = respawnInput;
         if (!hax.getModuleEnabled(ModuleID::CUSTOM_RESPAWN_TIME)) hax.respawnInput->setVisible(false);
+        this->setNoclipTintColor(hax.noclipTintColor);
     }
     if (category == ModuleCategory::Universal) {
         auto udidSpr = ButtonSprite::create("Copy UDID", 50, 0, 1, false, "bigFont.fnt", "GJ_button_04.png");
@@ -539,6 +936,27 @@ void HaxMenu::onCategory(ModuleCategory category) {
         udidBtn->setPosition(ccp(-70, -winSize.height / 2 + 30));
         this->modMenu->addChild(udidBtn);
         this->udidBtn = udidBtn;
+
+        auto spr = ButtonSprite::create("Crash Game", 50, 0, 1, false, "bigFont.fnt", "GJ_button_04.png");
+
+        auto btn = (CCMenuItemSpriteExtra*)CCMenuItemExt::createWithSpriteExtra(
+            spr,
+            [this](CCObject*)
+            {
+                auto alert = FLAlertLayer::create(
+                    this,
+                    "Warning",
+                    "Are you <cy>sure</c> you want to <cr>crash</c> the game? Your progress will <cr>NOT</c> be saved unless you have auto backup on.",
+                    "Noo!",
+                    "YES",
+                    300.f
+                );
+                alert->show();
+            }
+        );
+        btn->setPosition(ccp(10, -winSize.height / 2 + 30));
+        this->modMenu->addChild(btn);
+        this->crashBtn = btn;
         
 #if GDPS == GDPS_NEOPOINTFOUR
         /*auto restoreSpr = ButtonSprite::create("Restore", 50, 0, 1, false, "bigFont.fnt", "GJ_button_04.png");
@@ -664,8 +1082,15 @@ void HaxMenu::onClose(CCObject* sender) {
     auto& hax = HaxManager::sharedState();
     hax.saveSettingsToFile();
     
-    if (hax.getModuleEnabled(ModuleID::FLOATING_ICON)) {
+    if (hax.getModuleEnabled(ModuleID::FLOATING_ICON) && hax.omniMenu) {
         hax.omniMenu->resetVisibility();
+        // hax.omniMenu->setTouchEnabled(true);
+
+        auto dispatcher = CCDirector::sharedDirector()->getTouchDispatcher();
+        dispatcher->removeDelegate(hax.omniMenu);
+        hax.omniMenu->setup();
+
+        hax.omniMenu->m_movable = true;
     }
 
     CCDirector* director = CCDirector::sharedDirector();
@@ -723,6 +1148,11 @@ bool HaxMenu::ccTouchBegan(cocos2d::CCTouch* t, cocos2d::CCEvent*)
     }
 #endif
     return true;
+}
+
+void HaxMenu::FLAlert_Clicked(FLAlertLayer*, bool btn2)
+{
+    if (btn2) std::terminate();
 }
 
 // from starry sky. never in a million years would i have figured ts out without it

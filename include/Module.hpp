@@ -1,4 +1,7 @@
 #pragma once
+#include <functional>
+#include <cocos2d.h>
+using namespace cocos2d;
 
 enum class ModuleCategory {
     Player = 0,
@@ -10,6 +13,24 @@ enum class ModuleCategory {
     Label = 5,
     Particles = 6,
     SaveData = 8 // not a real category, just exists for hax.lastCategory to remember the Save Data tab
+};
+
+enum class ModuleSubcategory {
+    None,
+    Noclip,
+    Speedhack,
+    StartPosSwitcher,
+    FloatingMenuIcon,
+    Percentage,
+    Hitboxes,
+    Count
+};
+
+enum class ModuleType {
+    Toggler,
+    ColorPicker,
+    Input,
+    NumberInput
 };
 
 // class Module {
@@ -50,6 +71,12 @@ public:
     ModuleCategory category;
     void (*onToggle)(bool);
     bool exists;
+    ModuleSubcategory subcategory;
+    ModuleSubcategory owner;
+    CCNode* node;
+    ModuleType type;
+    _ccColor3B pickerColor;
+    std::string* inputReference;
 
     Module() = default;
 
@@ -58,14 +85,23 @@ public:
            std::string description,
            bool defaultEnabled,
            ModuleCategory category,
-           void (*onToggle)(bool))
+           void (*onToggle)(bool),
+           ModuleSubcategory subcategory = ModuleSubcategory::None,
+           ModuleSubcategory owner = ModuleSubcategory::None,
+           ModuleType type = ModuleType::Toggler,
+           std::string* inputReference = nullptr
+        )
         : exists(true), // only when explicitly constructed
           id(id),
           name(name),
           description(std::move(description)),
           enabled(defaultEnabled),
           category(category),
-          onToggle(onToggle) {}
+          onToggle(onToggle),
+          subcategory(subcategory),
+          owner(owner),
+          type(type),
+          inputReference(inputReference){}
     
     void setEnabled(bool value) {
         enabled = value;
@@ -73,5 +109,9 @@ public:
     }
     void toggle() {
         setEnabled(!enabled);
+    }
+    void setColor(_ccColor3B color)
+    {
+        pickerColor = color;
     }
 };

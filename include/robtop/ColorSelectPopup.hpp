@@ -17,12 +17,23 @@ public:
     void updateDurLabel();
 };
 
+class ColorPickerPopup;
+class ColorPickerDelegate {
+public:
+    virtual ColorPickerPopup* colorPickerClosed(ColorPickerPopup*);
+};
+
 class ColorPickerPopup : public FLAlertLayer {
 public:
-    static ColorSelectPopup* create(GameObject* object);
-    bool init(GameObject* object);
+    #if GAME_VERSION < GV_1_7
+    static ColorPickerPopup* create();
+    #else
+    static ColorPickerPopup* create(int, int, int);
+    #endif
+    bool init();
     _ccColor3B getColorValue();
     void selectColor(_ccColor3B color);
+    void setDelegate(ColorPickerDelegate*);
 
     void onCopy();
     void onPaste();

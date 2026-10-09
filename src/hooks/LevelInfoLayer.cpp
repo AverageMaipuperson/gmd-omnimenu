@@ -6,6 +6,7 @@
 #include "LevelTools.hpp"
 // #include "ShareCommentLayer.hpp"
 #include <algorithm>
+#include "SongInfoLayer.hpp"
 
 #if GDPS == GDPS_NEOPOINTFOUR
 class LevelInfoLayerExt {
@@ -287,7 +288,44 @@ bool LevelInfoLayer_init(LevelInfoLayer* self, GJGameLevel* level) {
     menu->setPosition(ccp(winSize.width - 30, winSize.height / 2 + 50));
     menu->setAnchorPoint(ccp(.5f, 1));
     */
+
+    if (hax.getModuleEnabled(ModuleID::DISPLAY_SONG))
+    {
+        auto track = level->m_nAudioTrack;
+        auto layer = CCLayer::create();
+        auto str = LevelTools::getAudioTitle(track);
+
+        auto label = CCLabelBMFont::create(
+            str,
+            "bigFont.fnt"
+        );
+
+        label->setScale(0.5f);
+
+        auto note = CCSprite::createWithSpriteFrameName("GJ_noteIcon_001.png");
+        note->setPosition(ccp(winSize.width / 2 + 60, winSize.height / 2 + 30));
+
+        auto btn = CCMenuItemLabel::create(label, self, menu_selector(LevelInfoLayer::onTrack));
+        btn->setPosition(ccp(note->getPosition().x + 20, note->getPosition().y + 10));
+        btn->setAnchorPoint(ccp(0,.5));
+
+        auto menu = CCMenu::create(btn, 0);
+        menu->setPosition(ccp(0,0));
+        self->addChild(menu);
+
+        layer->addChild(note);
+        self->addChild(layer);
+    }
+
     return true;
+}
+
+void LevelInfoLayer::onTrack(CCObject*)
+{
+    auto lvl = getInfoLayerLevel(this);
+    auto obj = SongObject::create(lvl->m_nAudioTrack);
+    
+    SongInfoLayer::create(obj)->show();
 }
 
 #if GAME_VERSION >= GV_1_7

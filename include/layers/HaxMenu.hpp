@@ -5,15 +5,66 @@
 #include <Module.hpp>
 #include "CCMenuItemSpriteExtra.hpp"
 #include "../layers/CustomScrollLayer.hpp"
+#include "FLAlertLayer.hpp"
 #if GAME_VERSION >= GV_1_7
 #include "cocos2d-2.2.3/cocos2dx/layers_scenes_transitions_nodes/CCLayer.h"
 #endif
+#include "CCMenuItemExt.h"
+#include "ColorSelectPopup.hpp"
+
+#define CHECKBOX_PREFIX 100000
+#define LABEL_PREFIX 200000
+#define INFO_PREFIX 300000
 
 // #if GAME_VERSION < GV_1_7
 // #else
 // class HaxMenu : public CCLayer
 // #endif
-class HaxMenu : public CCLayerColor
+
+
+class Branch : public CCNode {
+public:
+    struct Segment {
+        CCPoint start;
+        CCPoint end;
+    };
+
+    std::vector<Segment> lines;
+    bool m_show = false;
+
+    static Branch* create() {
+        auto ret = new Branch();
+        if (ret && ret->init()) {
+            ret->autorelease();
+            return ret;
+        }
+        delete ret;
+        return nullptr;
+    }
+
+    bool init()
+    {
+        return true;
+    }
+
+    virtual void draw() override {
+        CCNode::draw();
+        if (!this->isVisible() || lines.empty()) return;
+
+        ccGLBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+        glEnable(GL_BLEND);
+        
+        ccDrawColor4B(100, 100, 100, 150); 
+        glLineWidth(2.0f);
+
+        for (const auto& line : lines)
+        {
+            ccDrawLine(line.start, line.end);
+        }
+    }
+};
+
+class HaxMenu : public CCLayerColor, public ColorPickerDelegate, public TextInputDelegate, public FLAlertLayerProtocol
 {
 public:
     static HaxMenu* create(CCLayer* referrer);
@@ -51,6 +102,15 @@ protected:
     void onThree(CCObject*);
     void onExportData(SEL_MenuHandler_1_7_compat);
     void onImportData(CCObject* sender);
+    void toggleDropdown(ModuleSubcategory);
+    void drawBranches(Module& owner, const std::vector<Module*>& modules, bool visible);
+    void redrawBranches();
+    void moveDown(Module& pivot, bool down);
+    void setNoclipTintColor(_ccColor3B color);
+    CCTextInputNode* createTheInput(Module&, CCPoint);
+    
+    virtual ColorPickerPopup* colorPickerClosed(ColorPickerPopup*);
+    virtual void FLAlert_Clicked(FLAlertLayer*, bool);
 
     CCNode* leftParent;
     CCNode* rightParent;
@@ -59,7 +119,11 @@ protected:
     CCMenu* catMenu;
     CCMenu* modMenu;
     CCMenuItemSpriteExtra* udidBtn;
+    CCMenuItemSpriteExtra* crashBtn;
     CCSprite* leftPanel;
     CCSprite* rightPanel;
     bool canSpoofPih;
+    std::map<ModuleSubcategory, Branch*> branches;
+    std::map<ModuleSubcategory, float> yPos;
+    ColorPickerPopup* popup;
 };

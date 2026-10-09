@@ -12,7 +12,7 @@ void showRandomMessage() {
     std::vector<std::string> messages = {
         "When them <co>fajitas</c> come out <cy>sizzlin'</c>!",
         "kitto todoku hazu",
-        "I loooove <co>GD Cologne</c>!",
+        // "I loooove <co>GD Cologne</c>!",
         "Another Time Then...",
         "<cl>And we Will End!!</c>",
         fmt::format("Hello <cy>{}</c>. You don't know me, but I know you. I want to play a <cr>game</c>.", getPlayerName()),
@@ -122,18 +122,6 @@ bool LevelSelectLayer_init(LevelSelectLayer* self, int a) {
         self->addChild(infoMenu, 1000);
         infoMenu->addChild(infoBtn);
         infoMenu->setPosition(ccp(winSize.width - 20, winSize.height - 20));
-    }
-
-    auto texture = CCTextureCache::sharedTextureCache()->textureForKey("groundSquare_001.png");
-    auto children = self->getChildren();
-
-    for (int i = 0 ; i < children->count() ; i++)
-    {
-        auto obj = children->objectAtIndex(i);
-        if(auto spr = dynamic_cast<CCSprite*>(obj))
-        {
-            if(spr->getTexture() == texture) spr->removeMeAndCleanup();
-        }
     }
     return true;
 }

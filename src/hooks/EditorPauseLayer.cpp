@@ -1,5 +1,8 @@
 #include "hook.hpp"
 #include "EditorPauseLayer.hpp"
+#include "ButtonSprite.hpp"
+
+LevelEditorLayer* g_lel = nullptr;
 
 void EditorPauseLayer::onOpenMenu() {
     auto haxOverlay = HaxMenu::create(this);
@@ -7,9 +10,10 @@ void EditorPauseLayer::onOpenMenu() {
     this->setTouchEnabled(false);
 }
 
-bool (*TRAM_EditorPauseLayer_init)(cocos2d::CCLayer* self, LevelEditorLayer* editLayer);
-bool EditorPauseLayer_init(cocos2d::CCLayer* self, LevelEditorLayer* editLayer) {
+bool (*TRAM_EditorPauseLayer_init)(EditorPauseLayer* self, LevelEditorLayer* editLayer);
+bool EditorPauseLayer_init(EditorPauseLayer* self, LevelEditorLayer* editLayer) {
     if (!TRAM_EditorPauseLayer_init(self, editLayer)) return false;
+    g_lel = editLayer;
     HaxManager& hax = HaxManager::sharedState();
     auto director = CCDirector::sharedDirector();
     auto winSize = director->getWinSize();
@@ -134,11 +138,69 @@ bool EditorPauseLayer_init(cocos2d::CCLayer* self, LevelEditorLayer* editLayer) 
 
     CCSprite* menuSpr = CCSprite::create("OMNImenu_btn.png");
     CCMenuItemSpriteExtra* menuBtn = CCMenuItemSpriteExtra::create(menuSpr, menuSpr, self, menu_selector(PauseLayer::onOpenMenu));
-    btnMenu->addChild(menuBtn, 999);
+    if(!hax.getModuleEnabled(ModuleID::FLOATING_ICON)) btnMenu->addChild(menuBtn, 999);
     menuBtn->setPosition(ccp(winSize.width - 50.f, -50.f));
 #ifdef STEALTH_MODE
     menuBtn->setVisible(false);
 #endif
+
+    if (hax.getModuleEnabled(ModuleID::SAVE_LEVEL))
+    {
+        auto menu = (CCMenu*)self->getChildren()->objectAtIndex(0);
+        auto exitBtn = (CCMenuItemSpriteExtra*)menu->getChildren()->lastObject();
+        exitBtn->removeFromParentAndCleanup(true);
+
+        auto spr = ButtonSprite::create("Save", 0, 220, 1, false);
+        auto btn = (CCMenuItemSpriteExtra*)CCMenuItemExt::createWithSpriteExtra(
+            spr,
+            [self](CCObject*)
+            {
+                struct Delegate : public FLAlertLayerProtocol
+                {
+                    EditorPauseLayer* m_layer = nullptr;
+
+                    void FLAlert_Clicked(FLAlertLayer*, bool btn2)
+                    {
+                        if (btn2) m_layer->saveLevel();
+                        delete this;
+                    }
+                };
+
+                auto delegate = new Delegate();
+                delegate->m_layer = self;
+
+                auto alert = FLAlertLayer::create(
+                    delegate,
+                    "Save",
+                    "Do you want to <cy>save</c> the level?",
+                    "NO",
+                    "YES",
+                    300.f
+                );
+                alert->setTag(2);
+                alert->show();
+            }
+        );
+
+        menu->addChild(btn);
+
+        spr = ButtonSprite::create("Exit", 0, 220, 1, false);
+        btn = (CCMenuItemSpriteExtra*)CCMenuItemExt::createWithSpriteExtra(
+            spr,
+            [self](CCObject*)
+            {
+                #if GAME_VERSION < GV_1_7
+                self->onExitNoSave();
+                #else
+                self->onExitNoSave(nullptr);
+                #endif
+            }
+        );
+
+        menu->addChild(btn);
+        menu->alignItemsVerticallyWithPadding(10);
+    }
+
     return true;
 }
 
@@ -151,6 +213,40 @@ void EditorPauseLayer_saveLevel(EditorPauseLayer* self) {
         hax.saveSettingsToFile();
     }
 }
+
+void (*EditorPauseLayer_onResume)(EditorPauseLayer* self);
+void EditorPauseLayer_onResume_H(EditorPauseLayer* self) {
+    auto& hax = HaxManager::sharedState();
+    EditorPauseLayer_onResume(self);
+    if (hax.getModuleEnabled(ModuleID::HIDE_ICON_ON_EDITOR) && hax.getModuleEnabled(ModuleID::FLOATING_ICON) && hax.omniMenu) {
+        hax.omniMenu->m_sMenu->setVisible(false);
+        hax.omniMenu->m_sMenu->setEnabled(false);
+    }
+}
+
+void (*EditorPauseLayer_FLAlert_Clicked)(EditorPauseLayer* self, FLAlertLayer* alert, bool btn2);
+void EditorPauseLayer_FLAlert_Clicked_H(EditorPauseLayer* self, FLAlertLayer* alert, bool btn2)
+{
+    // CCLog("%i", alert->getTag());
+    if (btn2)
+    {
+        EditorPauseLayer_FLAlert_Clicked(self, alert, true);
+        #if GAME_VERSION < GV_1_7
+        if (alert->getTag() == 1)
+        self->onExitEditor();
+        else self->saveLevel();
+        #else
+        if (alert->getTag() == 2)
+        self->saveLevel();
+        else
+        {
+            auto gman = GameManager::sharedState();
+            gman->returnToLastScene(g_lel->getLevel());
+        }
+        #endif
+    }
+}
+
 void EditorPauseLayer_om() {
     Omni::hook("_ZN16EditorPauseLayer4initEP16LevelEditorLayer",
         reinterpret_cast<void*>(EditorPauseLayer_init),
@@ -158,4 +254,10 @@ void EditorPauseLayer_om() {
     Omni::hook("_ZN16EditorPauseLayer9saveLevelEv",
         reinterpret_cast<void*>(EditorPauseLayer_saveLevel),
         reinterpret_cast<void**>(&TRAM_EditorPauseLayer_saveLevel));
+    Omni::hook("_ZN16EditorPauseLayer8onResumeEv",
+        reinterpret_cast<void*>(EditorPauseLayer_onResume_H),
+        reinterpret_cast<void**>(&EditorPauseLayer_onResume));
+    Omni::hook("_ZN16EditorPauseLayer15FLAlert_ClickedEP12FLAlertLayerb",
+        reinterpret_cast<void*>(EditorPauseLayer_FLAlert_Clicked_H),
+        reinterpret_cast<void**>(&EditorPauseLayer_FLAlert_Clicked));
 }

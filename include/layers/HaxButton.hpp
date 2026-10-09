@@ -19,5 +19,7 @@ public:
     virtual void ccTouchEnded(CCTouch*, CCEvent*) override;
     virtual void ccTouchMoved(CCTouch*, CCEvent*) override;
     void setup();
+    CCPoint clamp(CCPoint);
+    void update(float dt){}
 };
 #define HAX_BUTTON_TAG 83647364

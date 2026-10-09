@@ -6,6 +6,7 @@
 #define RED_INPUT_TAG 1056817
 #define GREEN_INPUT_TAG 2056817
 #define BLUE_INPUT_TAG 3056817
+#define HEX_INPUT_TAG 4056817
 #define RGBCOLORINPUTS_TAG 63584276
 
 class RGBColorInputs : public CCLayer, public TextInputDelegate {
@@ -15,6 +16,7 @@ public:
     CCTextInputNode* greenInput;
     CCTextInputNode* blueInput;
     CCTextInputNode* ftInput;
+    CCTextInputNode* hexInput;
     bool ignore;
     bool dontChange;
     bool hasInitializedColor;

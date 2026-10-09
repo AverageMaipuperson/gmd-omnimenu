@@ -96,10 +96,10 @@ void UILayer::updateLabel() {
     hax.uiLabel->setString(writer.c_str());
 }
 
-const char* getSwitcherText() {
+std::string getSwitcherText() {
     HaxManager& hax = HaxManager::sharedState();
     auto startPoses = hax.getStartPositions();
-    return fmt::format("{}/{}", hax.startPosIndex + 1, startPoses->count()).c_str();
+    return fmt::format("{}/{}", hax.startPosIndex + 1, startPoses->count());
 }
 
 void UILayer::createSwitcher() {
@@ -118,8 +118,8 @@ void UILayer::createSwitcher() {
     addChild(parent);
     hax.spSwitcherParent = parent;
 
-    auto label = CCLabelBMFont::create(getSwitcherText(), "bigFont.fnt");
-    label->setString(getSwitcherText());
+    auto label = CCLabelBMFont::create(getSwitcherText().c_str(), "bigFont.fnt");
+    label->setString(getSwitcherText().c_str());
     label->setScale(0.6);
     parent->addChild(label);
     hax.switcherLabel = label;
@@ -173,7 +173,7 @@ void UILayer::pickStartPos(int ind) {
     }
     getPlayLayer()->resetLevel();
     if (ind != -1) hax.startPercent = getCurrentPercentageF();
-    hax.switcherLabel->setString(getSwitcherText());
+    hax.switcherLabel->setString(getSwitcherText().c_str());
 }
 
 void UILayer::createCheatIndicator() {
@@ -313,13 +313,19 @@ bool UILayer_init(UILayer* self) {
     if (hax.getShowLabel()) {
         self->createLabel();
     }
-    hax.noclipTint = CCLayerColor::create(ccc4(255, 0, 0, 0));
+    auto color = hax.noclipTintColor;
+
+    hax.noclipTint = CCLayerColor::create(ccc4(color.r, color.g, color.b, 0));
     hax.noclipTint->_setZOrder(1000);
     self->addChild(hax.noclipTint);
     // moved to PlayLayer::init
     // if (hax.getModuleEnabled("start_pos_switcher")) {
     //     self->createSwitcher();
     // }
+    if (hax.getModuleEnabled(ModuleID::HIDE_ICON_ON_PLAY) && hax.getModuleEnabled(ModuleID::FLOATING_ICON) && hax.omniMenu) {
+        hax.omniMenu->m_sMenu->setVisible(false);
+        hax.omniMenu->m_sMenu->setEnabled(false);
+    }
     return true;
 }
 void (*TRAM_UILayer_destructor)(UILayer* self);

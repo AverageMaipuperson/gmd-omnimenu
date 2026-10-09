@@ -351,3 +351,35 @@ void getPackageName() {
     hax.packageName = env->GetStringUTFChars(pkg, nullptr);
     CCLog("%s", hax.packageName);
 }
+
+template <typename T>
+std::vector<T> arrayToVec(CCArray* arr)
+{
+    std::vector<T> vec = {};
+    if(arr == nullptr) return vec;
+
+    for(int i = 0 ; i < arr->count() ; i++)
+    {
+        auto obj = (T)arr->objectAtIndex(i);
+        vec.push_back(obj); 
+    }
+
+    return vec;
+}
+
+std::vector<GameObject*> filterObjects(std::vector<GameObject*> arr, std::unordered_set<int> ids)
+{
+    std::vector<GameObject*> filtered;
+    filtered.reserve(arr.size());
+
+    for (auto obj : arr)
+    {
+        if (ids.count(obj->getObjectKey())) 
+        {
+            filtered.push_back(obj);
+            // CCLog("%i", obj->getObjectKey());
+        }
+    }
+
+    return filtered;
+}

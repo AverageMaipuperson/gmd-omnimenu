@@ -148,9 +148,14 @@ void PauseLayer_customSetup(PauseLayer* self) {
     self->addChild(btnMenu, 999);
     btnMenu->setPosition(ccp(0, winSize.height));
 
+    if (hax.getModuleEnabled(ModuleID::HIDE_ICON_ON_PLAY) && hax.getModuleEnabled(ModuleID::FLOATING_ICON) && hax.omniMenu) {
+        hax.omniMenu->m_sMenu->setVisible(true);
+        hax.omniMenu->m_sMenu->setEnabled(true);
+    }
+
     CCSprite* menuSpr = CCSprite::create("OMNImenu_btn.png");
     CCMenuItemSpriteExtra* menuBtn = CCMenuItemSpriteExtra::create(menuSpr, menuSpr, self, menu_selector(PauseLayer::onOpenMenu));
-    btnMenu->addChild(menuBtn, 999);
+    if (!hax.getModuleEnabled(ModuleID::FLOATING_ICON)) btnMenu->addChild(menuBtn, 999);
     menuBtn->setPosition(ccp(50.f, -50.f));
 #ifdef STEALTH_MODE
     menuBtn->setVisible(false);

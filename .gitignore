@@ -4,3 +4,6 @@
 libgame.so
 libgame*.so
 libcocos2dcpp.so
+*.bat
+*.jks
+*.kra

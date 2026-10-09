@@ -12,7 +12,7 @@
 #define FORCE_AUTO_SAFE_MODE // Comment this out to disable force auto safe mode
 #define PING_SPOOFING // Comment this out to disable Pig Spoofing (brutal)
 // #define STAR_RATED_LEVELS_GRANT_COINS // Uncomment this to enable star rated levels granting secret coins even in Force Auto Safe Mode (1.6+)
-#define GDPS GDPS_NONE // Possible values: GDPS_NONE, GDPS_NEOPOINTFOUR and GDPS_1_7 (1.7 GDPS by Aricco) 
+#define GDPS GDPS_NONE // Possible values: GDPS_NONE, GDPS_NEOPOINTFOUR, GDPS_1_7 (1.7 GDPS by Aricco) and BANANA_GDPS
 // #define EXTRA_COLORS // Uncomment this to enable extra colors (1.3 and 1.4 only)
 #define NUMBER_OF_BACKUPS 5 // Change this to modify the amount of available backups per game version
 
@@ -26,6 +26,9 @@
 #elif GDPS == GDPS_NEOPOINTFOUR
     #define JAVA_PATH_MAIN "com/cynigdx/onepointfour"
     #define JAVA_PATH_MAIN_JNI_HOOK com_cynigdx_onepointfour
+#elif GDPS == BANANA_GDPS
+    #define JAVA_PATH_MAIN "com/pobtorx/geometryjump"
+    #define JAVA_PATH_MAIN_JNI_HOOK com_pobtorx_geometryjump
 #else
     #error "Unknown GDPS"
 #endif
@@ -84,7 +87,7 @@
         "OK",\
         nullptr,\
         300.f\
-    )->show();
+  scm-history-item:c%3A%5CUsers%5CUsuario%5CDownloads%5Ccmake-4.1.2%5Ccmake-4.1.2%5Cgmd-omnimenu?%7B%22repositoryId%22%3A%22scm0%22%2C%22historyItemId%22%3A%22ee256068c0b52f55f0546b473251bef3b771a79e%22%2C%22historyItemParentId%22%3A%2294f82f611075e9dd9b8e8d7b3b260b25ac1461c4%22%2C%22historyItemDisplayId%22%3A%22ee25606%22%7D  )->show();
 
 
 #if GAME_VERSION >= GV_1_7

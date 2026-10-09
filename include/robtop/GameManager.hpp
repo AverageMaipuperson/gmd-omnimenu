@@ -3,6 +3,7 @@
 #include <cocos2d.h>
 #include "PlayLayer.hpp"
 #include "GManager.hpp"
+#include "GJGameLevel.hpp"
 
 class GameRateDelegate {
 	virtual void updateRate();
@@ -25,6 +26,7 @@ public:
 #endif
     void setPlayerColor(int);
     void setPlayerColor2(int);
+    void returnToLastScene(GJGameLevel*);
 
     // IDA returns poop addresses
 

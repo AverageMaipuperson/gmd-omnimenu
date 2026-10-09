@@ -22,6 +22,7 @@
 //     CCDirector::sharedDirector()->pushScene(CCTransitionFade::create(0.5f, HaxLayer::scene(false)));
 // }
 
+#if GDPS == BANANA_GDPS
 void MenuLayer::startShake()
 {
     auto director = CCDirector::sharedDirector();
@@ -64,6 +65,7 @@ void MenuLayer::onBananaFinished(CCObject*)
     auto fadeOut = CCFadeOut::create(1);
     g_banana->runAction(fadeOut);
 }
+#endif
 
 void MenuLayer::onOpenMenu(SEL_MenuHandler_1_7_compat) {
     auto haxOverlay = HaxMenu::create(this); //HaxOverlay::create(this);
@@ -77,8 +79,10 @@ void MenuLayer::onMenuInfo(SEL_MenuHandler_1_7_compat) {
         fmt::format(
 #if GDPS == GDPS_NEOPOINTFOUR
             "<cg>OMNImenu</c> {}\n<cl>Geometry Dash</c> {}\n<cr>Special Thanks</c>: <cy>akqanile</c>, <cy>Hris69</c>, <cy>Pololak</c>, <cy>Nikolyas</c>, <cy>Capeling</c>, <cy>Cvolton</c>, <cy>dank_meme01</c>, <cy>prevter</c>, <cy>Thelazycat</c>, <cy>HJFod</c>, <cy>iAndyHD_3</c>\nWith love from <cy>AntiMatter</c>, <cy>RandomB</c> and <cy>nano</c> <cr><3</c>", 
+#elif GAME_VERSION > GV_1_6
+            "<cg>OMNImenu</c> {}\n<cl>Geometry Dash</c> {}\n<cr>Special Thanks</c>: <cy>akqanile</c>, <cy>Hris69</c>, <cy>Pololak</c>, <cy>Nikolyas</c>, <cy>RandomB</c>, <cy>Capeling</c>, <cy>Cvolton</c>, <cy>dank_meme01</c>, <cy>prevter</c>, <cy>Thelazycat</c>, <cy>HJFod</c>, <cy>iAndyHD_3</c>\nWith love from <cy>AntiMatter</c> and <cy>nano</c> <cr><3</c> ", // warning: some modules may be missing: floating menu icon
 #else
-            "<cg>OMNImenu</c> {}\n<cl>Geometry Dash</c> {}\n<cr>Special Thanks</c>: <cy>akqanile</c>, <cy>Hris69</c>, <cy>Pololak</c>, <cy>Nikolyas</c>, <cy>RandomB</c>, <cy>Capeling</c>, <cy>Cvolton</c>, <cy>dank_meme01</c>, <cy>prevter</c>, <cy>Thelazycat</c>, <cy>HJFod</c>, <cy>iAndyHD_3</c>\nWith love from <cy>AntiMatter</c> and <cy>nano</c> <cr><3</c>", 
+"<cg>OMNImenu</c> {}\n<cl>Geometry Dash</c> {}\n<cr>Special Thanks</c>: <cy>akqanile</c>, <cy>Hris69</c>, <cy>Pololak</c>, <cy>Nikolyas</c>, <cy>RandomB</c>, <cy>Capeling</c>, <cy>Cvolton</c>, <cy>dank_meme01</c>, <cy>prevter</c>, <cy>Thelazycat</c>, <cy>HJFod</c>, <cy>iAndyHD_3</c>\nWith love from <cy>AntiMatter</c> and <cy>nano</c> <cr><3</c>", 
 #endif
             MENU_VERSION, READABLE_GAME_VERSION_FULL).c_str(),
         "OK",
@@ -108,36 +112,35 @@ bool MenuLayer_init(cocos2d::CCLayer* self) {
 
     CCSprite* menuSpr = CCSprite::create("OMNImenu_btn.png");
 
-    if (hax.getModuleEnabled(ModuleID::FLOATING_ICON) && !hax.omniMenu) {   
+    if (hax.getModuleEnabled(ModuleID::FLOATING_ICON) && !hax.omniMenu) {
+#if GAME_VERSION < GV_1_7
         CCLog("creating haxbutton");     
         hax.omniMenu = HaxButton::create();
         hax.omniMenu->retain();
         hax.omniMenu->setup();
-        #if GAME_VERSION == GV_1_7
-        self->addChild(hax.omniMenu->m_sMenu);
-        #endif
-    } else if (!hax.getModuleEnabled(ModuleID::FLOATING_ICON)) {
+#endif
+    } else {
         CCMenuItemSpriteExtra* menuBtn = CCMenuItemSpriteExtra::create(menuSpr, menuSpr, self, menu_selector(MenuLayer::onOpenMenu));
-    #ifndef STEALTH_MODE 
+#ifndef STEALTH_MODE 
         bottomMenu->addChild(menuBtn);
         // menuBtn->setPosition(ccp(-130, -winSize.height + 70.f));
         bottomMenu->alignItemsHorizontallyWithPadding(5.0f);
-    #else
+#else
         infoBtn->setVisible(false);
         bottomMenu = CCMenu::create();
         bottomMenu->addChild(menuBtn);
         self->addChild(bottomMenu);
         bottomMenu->setPosition(ccp(50, winSize.height - 50));
         menuBtn->setOpacity(0);
-    #endif
+#endif
     }
 
-    #if GDPS == GDPS_NEOPOINTFOUR
+#if GDPS == GDPS_NEOPOINTFOUR
     if (!hasRecalculated) {
         hasRecalculated = true;
         recalculateStars();
     }
-    #endif
+#endif
 
 #if GDPS == BANANA_GDPS
     if (!cocos2d::CCUserDefault::sharedUserDefault()->getBoolForKey("unlocked-bananaa"))

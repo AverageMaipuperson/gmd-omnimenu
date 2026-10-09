@@ -79,6 +79,7 @@ class GameObject : public cocos2d::CCSprite {
 #endif
 public:
     static GameObject* objectFromString(std::string);
+    static GameObject* create(char const*);
 
     virtual void update(float dt) override;
     virtual void setRotation(float rotation) override;
@@ -100,4 +101,7 @@ public:
     virtual cocos2d::CCRect getObjectRect();
     virtual cocos2d::CCRect getObjectRect(float scaleX, float scaleY);
     virtual cocos2d::CCRect getObjectRect2(float scaleX, float scaleY);
+
+    int getObjectKey() const;
+    int getType() const;
 };

@@ -22,6 +22,10 @@
 #include <fmt/format.h>
 #include "Utils.hpp"
 #include "HaxButton.hpp"
+#include <iostream>
+#include <vector>
+#include <algorithm>
+#include <cmath>
 
 enum class CheatIndicatorColor {
     Green,
@@ -51,6 +55,7 @@ enum ModuleID {
     DELETE_SELECTED,
     DELETE_START_POS,
     DEMONS_IN_GARAGE,
+    DISPLAY_SONG,
     OBJECT_COUNTER, // Editor Pause Info
     EXTRA_EDIT_BUTTONS,
     FAST_MENU,
@@ -69,6 +74,7 @@ enum ModuleID {
     LEVEL_COPYING,
 #endif
     LEVEL_EDIT,
+    LEVEL_SEARCH,
     HIDE_ATTEMPTS,
     HIDE_CHECKPOINT_BUTTONS,
     HIDE_END_SCREEN,
@@ -100,6 +106,9 @@ enum ModuleID {
     MUSIC_BUG_FIX,
     NOCLIP,
     NOCLIP_TINT_ON_DEATH,
+    NOCLIP_TINT_COLOR,
+    //NOCLIP_LIMITS,
+    NOCLIP_TINT_DURATION,
     NO_DEATH_EFFECT,
     NO_GLOW,
     NO_MIRROR,
@@ -109,7 +118,11 @@ enum ModuleID {
     NO_SHIP_TINT,
     OBJ_COLOR_FIX,
     OBJECT_LIMIT_BYPASS,
+#if GAME_VERSION > GV_1_4
     PAGE_CONTROLS,
+#else
+    PAGE_CONTROLS, // Local Level Search
+#endif
     PAGE_REFRESH,
 
     PARTICLE_BACKGROUND,
@@ -134,6 +147,7 @@ enum ModuleID {
     RELATIVE_ROTATION,
     ROTATION_BUG_FIX,
     SAFE_MODE,
+    SAVE_LEVEL,
     SAVE_ON_LEVEL_EXIT,
     SELECT_FILTER,
     SHIP_GRAVITY_BUG_FIX,
@@ -145,9 +159,11 @@ enum ModuleID {
     SHOW_PERCENTAGE_DECIMAL,
     SHOW_OBJECT_INFO,
     SHOW_RESTART_BUTTON,
+    SMART_START_POS,
     SPEEDHACK,
     START_POS_SWITCHER,
     SWEAR_FILTER_BYPASS,
+    TABBIRUS,
     TEXT_LENGTH_BYPASS,
     NO_TRAIL, // Trail Always Off
     TRAIL_ALWAYS_ON,
@@ -254,6 +270,9 @@ public:
     bool areWeInPlayLayer;
     bool mbfEnabled;
     const char* packageName;
+    bool doSpawnCircles;
+    _ccColor3B noclipTintColor;
+    std::string noclipTintOpacity;
 
     bool getModuleEnabled(ModuleID id) {
         return modules[id].enabled;
@@ -341,6 +360,19 @@ public:
         if (doc.HasMember("pref_timeScale") && doc["pref_timeScale"].IsFloat()) {
             timeScale = doc["pref_timeScale"].GetFloat();
         }
+
+        if (doc.HasMember("pref_tintColorR") && doc["pref_tintColorR"].IsInt()) {
+            noclipTintColor.r = doc["pref_tintColorR"].GetInt();
+        }
+
+        if (doc.HasMember("pref_tintColorG") && doc["pref_tintColorG"].IsInt()) {
+            noclipTintColor.g = doc["pref_tintColorG"].GetInt();
+        }
+
+        if (doc.HasMember("pref_tintColorB") && doc["pref_tintColorB"].IsInt()) {
+            noclipTintColor.b = doc["pref_tintColorB"].GetInt();
+        }
+
         if (doc.HasMember("pref_respawnTime") && doc["pref_respawnTime"].IsFloat()) {
             respawnTime = doc["pref_respawnTime"].GetFloat();
         }
@@ -411,6 +443,12 @@ public:
         document.AddMember(jk, timeScale, allocator);
         rapidjson::Value jk2("pref_respawnTime", static_cast<rapidjson::SizeType>(strlen("pref_respawnTime")), allocator);
         document.AddMember(jk2, respawnTime, allocator);
+        rapidjson::Value jk3("pref_tintColorR", static_cast<rapidjson::SizeType>(strlen("pref_tintColorR")), allocator);
+        document.AddMember(jk3, noclipTintColor.r, allocator);
+        rapidjson::Value jk4("pref_tintColorG", static_cast<rapidjson::SizeType>(strlen("pref_tintColorG")), allocator);
+        document.AddMember(jk4, noclipTintColor.g, allocator);
+        rapidjson::Value jk5("pref_tintColorB", static_cast<rapidjson::SizeType>(strlen("pref_tintColorB")), allocator);
+        document.AddMember(jk5, noclipTintColor.b, allocator);
 
         for (int i = 1; i <= NUMBER_OF_BACKUPS; i++) {
             auto bkStr = fmt::format("backupKey{}", i);
@@ -590,7 +628,42 @@ private:
             false, ModuleCategory::Player, [](bool _){
                 HaxManager& hax = HaxManager::sharedState();
                 if (_) hax.setCheating(true);
-            });
+            },
+            ModuleSubcategory::None,
+            ModuleSubcategory::Noclip
+        );
+
+        // noclip subcategory
+
+        modules[ModuleID::NOCLIP_TINT_ON_DEATH] = Module(
+            "noclip_tint_on_death",
+            "NoClip Tint On Death", 
+            "Tints the screen red when the player dies with NoClip enabled.", 
+            false, ModuleCategory::Player, [](bool _){},
+            ModuleSubcategory::Noclip
+        );
+
+        modules[ModuleID::NOCLIP_TINT_COLOR] = Module(
+            "noclip_tint_color",
+            "NoClip Tint Color", 
+            "The color for the tint when you die.", 
+            false, ModuleCategory::Player, [](bool _){},
+            ModuleSubcategory::Noclip,
+            ModuleSubcategory::None,
+            ModuleType::ColorPicker
+        );
+
+        /* modules[ModuleID::NOCLIP_TINT_DURATION] = Module(
+            "noclip_tint_color",
+            "NoClip Tint Color", 
+            "The color for the tint when you die.", 
+            false, ModuleCategory::Player, [](bool _){},
+            ModuleSubcategory::Noclip,
+            ModuleSubcategory::None,
+            ModuleType::NumberInput,
+            &noclipTintOpacity
+        ); */
+
         modules[ModuleID::NO_MIRROR] = Module(
             "no_mirror",
             "No Mirror", 
@@ -633,6 +706,7 @@ private:
             false, ModuleCategory::Player, [](bool _){
                 setRestartButton(_);
             });
+
         modules[ModuleID::SPEEDHACK] = Module(
             "speedhack",
             "Speedhack", 
@@ -661,14 +735,38 @@ private:
             "start_pos_switcher",
             "Start Pos Switcher", 
             "Adds the ability to switch between start positions on the fly.", 
-            false, ModuleCategory::Player, [](bool _){});
+            false, ModuleCategory::Player, [](bool _){},
+            ModuleSubcategory::None,
+            ModuleSubcategory::StartPosSwitcher
+        );
 
+        // start pos switcher subcategory
 
-        modules[ModuleID::GOLDEN_BEST] = Module(
-            "golden_best",
-            "Golden Best", 
-            "Makes the Show Percentage label gold if you are past your record on the level.", 
-            false, ModuleCategory::Visual, [](bool _){});
+        modules[ModuleID::SMART_START_POS] = Module(
+            "smart_start_pos",
+            "Smart Start Pos", 
+            "Adjusts start positions to the level.", 
+            false, ModuleCategory::Player, [](bool _){},
+            ModuleSubcategory::StartPosSwitcher
+        );
+
+        /*
+        modules[ModuleID::START_POS_TEST1] = Module(
+            "smart_start_pos",
+            "Smart Start Pos", 
+            "Adjusts start positions to the level.", 
+            false, ModuleCategory::Player, [](bool _){},
+            ModuleSubcategory::StartPosSwitcher
+        );
+
+        modules[ModuleID::START_POS_TEST2] = Module(
+            "smart_start_pos",
+            "Smart Start Pos", 
+            "Adjusts start positions to the level.", 
+            false, ModuleCategory::Player, [](bool _){},
+            ModuleSubcategory::StartPosSwitcher
+        );*/
+
         modules[ModuleID::HIDE_ATTEMPTS] = Module(
             "hide_attempts",
             "Hide Attempts", 
@@ -699,11 +797,6 @@ private:
                     }
                 }
             });
-        modules[ModuleID::NOCLIP_TINT_ON_DEATH] = Module(
-            "noclip_tint_on_death",
-            "NoClip Tint On Death", 
-            "Tints the screen red when the player dies with NoClip enabled.", 
-            false, ModuleCategory::Visual, [](bool _){});
         modules[ModuleID::NO_DEATH_EFFECT] = Module(
             "no_death_effect",
             "No Death Effect", 
@@ -759,22 +852,54 @@ private:
             false, ModuleCategory::Visual, [](bool _){
                 HaxManager& hax = HaxManager::sharedState();
                 if (_) hax.setCheating(true);
-            });
+            },
+            ModuleSubcategory::None,
+            ModuleSubcategory::Hitboxes
+        );
+
+        // hitboxes subcategory
+
         modules[ModuleID::SHOW_HITBOXES_ON_DEATH] = Module(
             "show_hitboxes_on_death",
             "Show Hitboxes on Death", 
             "Displays the hitboxes of objects upon death.", 
-            false, ModuleCategory::Visual, [](bool _){});
+            false, ModuleCategory::Visual, [](bool _){},
+            ModuleSubcategory::Hitboxes
+        );
+
+
+
+
         modules[ModuleID::SHOW_PERCENTAGE] = Module(
             "show_percentage",
             "Show Percentage", 
             "Displays the percentage the player is currently at.", 
-            false, ModuleCategory::Visual, [](bool _){});
+            false, ModuleCategory::Visual, [](bool _){},
+            ModuleSubcategory::None,
+            ModuleSubcategory::Percentage
+        );
+
+        // percentage subcategory
+
+        modules[ModuleID::GOLDEN_BEST] = Module(
+            "golden_best",
+            "Golden Best", 
+            "Makes the Show Percentage label gold if you are past your record on the level.", 
+            false, ModuleCategory::Visual, [](bool _){},
+            ModuleSubcategory::Percentage
+        );
+
         modules[ModuleID::SHOW_PERCENTAGE_DECIMAL] = Module(
             "show_percentage_decimal",
             "Decimal Percentage", 
             "Puts 3 decimal places after the percentage if you have Show Percentage enabled and in the Best Run label.", 
-            false, ModuleCategory::Visual, [](bool _){});
+            false, ModuleCategory::Visual, [](bool _){},
+            ModuleSubcategory::Percentage
+        );
+
+
+
+
         modules[ModuleID::NO_TRAIL] = Module(
             "no_trail",
             "Trail Always Off", 
@@ -798,7 +923,7 @@ private:
         modules[ModuleID::AUDIO_PLAYBACK] = Module(
             "audio_playback",
             "Audio Playback", 
-            "Plays the song of the level in the editor. (module by nano)", 
+            "Plays the song of the level in the editor.", 
             false, ModuleCategory::Editor, [](bool _){});
 #endif
 // #if GAME_VERSION < GV_1_6
@@ -877,7 +1002,7 @@ private:
             "Free Copy", 
             "Allows you to freely copy any level.",
 #endif
-            false, ModuleCategory::Editor, [](bool _){});
+            false, ModuleCategory::Universal, [](bool _){});
 #ifndef FORCE_AUTO_SAFE_MODE
         modules[ModuleID::LEVEL_EDIT] = Module(
             "level_edit",
@@ -919,6 +1044,11 @@ private:
             "Rotates objects around the selection's center rather than rotating each object around their own centers. (thanks akqanile/Adelfa for help)", 
             false, ModuleCategory::Editor, [](bool _){});
 #endif
+        modules[ModuleID::SAVE_LEVEL] = Module(
+            "save_level",
+            "Save Level", 
+            "Allows you to manually save a level.", 
+            false, ModuleCategory::Editor, [](bool _){});
         modules[ModuleID::SHOW_HITBOXES_EDITOR] = Module(
             "show_hitboxes_editor",
             "Show Hitboxes in Editor", 
@@ -1017,6 +1147,11 @@ private:
             "Displays your demon count in the icon kit (garage). (module by Hris69)", 
             false, ModuleCategory::Informational, [](bool _){});
 #endif
+        modules[ModuleID::DISPLAY_SONG] = Module(
+            "display_song",
+            "Display Song", 
+            "Displays the song name of an online level.", 
+            false, ModuleCategory::Informational, [](bool _){});
         modules[ModuleID::LEVEL_IDS_IN_SEARCH] = Module(
             "level_ids_in_list",
             "Level IDs in Search", 
@@ -1082,11 +1217,17 @@ private:
             "Fast Menu", 
             "Makes fade transitions instant.", 
             false, ModuleCategory::Universal, [](bool _){});
+#if GAME_VERSION < GV_1_7
         modules[ModuleID::FLOATING_ICON] = Module(
             "floating_icon",
             "Floating Menu Icon",
-            "Makes the OMNImenu button always be on screen. (module by nano)", 
-            false, ModuleCategory::Universal, [](bool _){});
+            "Makes the OMNImenu button always be on screen.", 
+            true, ModuleCategory::Universal, [](bool _){},
+            ModuleSubcategory::None,
+            ModuleSubcategory::FloatingMenuIcon
+        );
+#endif
+
 #if GAME_VERSION < GV_1_5
         modules[ModuleID::FONT_OFFSET_FIX] = Module(
             "font_offset_fix",
@@ -1119,16 +1260,24 @@ private:
             "GDShare", 
             "Adds buttons to convert a level to a .gmd file and vice-versa. May not work on older Android versions.", 
             false, ModuleCategory::Universal, [](bool _){});
+#if GAME_VERSION < GV_1_7
         modules[ModuleID::HIDE_ICON_ON_PLAY] = Module(
             "hide_icon_on_play",
-            "Hide Icon On Play",
-            "Hides the floating mod menu button when playing a level. (module by nano)", 
-            true, ModuleCategory::Universal, [](bool _){});
+            "Hide Icon In Play",
+            "Hides the floating mod menu button when playing a level.", 
+            true, ModuleCategory::Universal, [](bool _){},
+            ModuleSubcategory::FloatingMenuIcon,
+            ModuleSubcategory::None
+        );
         modules[ModuleID::HIDE_ICON_ON_EDITOR] = Module(
             "hide_icon_on_editor",
-            "Hide Icon On Editor",
-            "Hides the floating mod menu button when playing a level. (module by nano)", 
-            true, ModuleCategory::Universal, [](bool _){});
+            "Hide Icon In Editor",
+            "Hides the floating mod menu button when playing a level.", 
+            true, ModuleCategory::Universal, [](bool _){},
+            ModuleSubcategory::FloatingMenuIcon,
+            ModuleSubcategory::None
+        );
+#endif
 #if GAME_VERSION < GV_1_2
         modules[ModuleID::INPUT_BUG_FIX] = Module(
             "input_bug_fix",
@@ -1136,11 +1285,19 @@ private:
             "Fixes a pre-1.2 bug where typing more than 1 character doesn't work on certain keyboards.", 
             true, ModuleCategory::Universal, [](bool _){});
 #endif
+#if GAME_VERSION > GV_1_3
         modules[ModuleID::PAGE_CONTROLS] = Module(
             "page_controls",
             "Page Controls", 
-            "Adds the ability to jump to a specific page or a random one. (module by RandomB)", 
+            "Adds the ability to jump to a specific page or a random one. It also includes local level search. (module by RandomB)", 
             false, ModuleCategory::Universal, [](bool _){});
+#else
+        modules[ModuleID::PAGE_CONTROLS] = Module(
+            "local_level_search",
+            "Local Level Search", 
+            "Adds the ability to search for levels saved locally.", 
+            false, ModuleCategory::Universal, [](bool _){});
+#endif
         modules[ModuleID::PAGE_REFRESH] = Module(
             "page_refresh",
             "Page Refresh", 
@@ -1167,6 +1324,12 @@ private:
             "save_on_level_exit",
             "Save on Level Exit", 
             "Saves your data whenever you exit a level. Useful if you're paranoid about crashes. (module by RandomB)", 
+            false, ModuleCategory::Universal, [](bool _){});
+        
+        modules[ModuleID::TABBIRUS] = Module(
+            "tabbirus",
+            "Tabbirus", 
+            "Infects every icon with the tabbirus.", 
             false, ModuleCategory::Universal, [](bool _){});
 
 
@@ -1352,6 +1515,8 @@ private:
         respawnTime = 0.5;
         hasInitialized = false;
         hitboxLayer = nullptr;
+        noclipTintColor = ccc3(255, 0, 0);
+        noclipTintOpacity = "127";
 #if GAME_VERSION < GV_1_3
         copiedColor = ccc3(255, 255, 255);
 #endif

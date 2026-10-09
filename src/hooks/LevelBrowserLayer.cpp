@@ -2,6 +2,7 @@
 #include "GJGameLevel.hpp"
 #include "LevelBrowserLayer.hpp"
 #include "ButtonSprite.hpp"
+#include "SearchLayer.hpp"
 
 #if GAME_VERSION >= GV_1_4
 
@@ -377,11 +378,38 @@ public:
     }
 };
 
+CCArray* GameLevelManager_getSavedLevels_H(GameLevelManager* self)
+{
+    if (g_filterArr != nullptr)
+        return g_filterArr;
+    else
+        return GameLevelManager_getSavedLevels(self);
+}
+
+#if GAME_VERSION > GV_1_0
+CCArray* LocalLevelManager_getLocalLevels_H(LocalLevelManager* self)
+{
+    if (g_filterArr != nullptr)
+        return g_filterArr;
+    else
+        return LocalLevelManager_getLocalLevels(self);
+}
+#else
+CCArray* GameLevelManager_getLocalLevels_H(GameLevelManager* self)
+{
+    if (g_filterArr != nullptr)
+        return g_filterArr;
+    else
+        return GameLevelManager_getLocalLevels(self);
+}
+#endif
+
 class LevelBrowserLayerExt : public CCObject {
 public:
     CCLabelBMFont* pageLabel;
     CCMenuItemSpriteExtra* pageButton;
     CCMenuItemSpriteExtra* randomPageButton;
+    CCMenuItemSpriteExtra* exitSearchBtn;
     ButtonSprite* pageButtonSprite;
     CCMenu* pageMenu;
     LevelBrowserLayer* self;
@@ -446,6 +474,9 @@ public:
             }
             extensionMap.erase(it);
         }
+
+        g_searchFilter = "";
+        g_filterArr = nullptr;
     }
     
     void onRandomPage(CCObject* sender) {
@@ -499,6 +530,13 @@ public:
             layer->show();
         }
     }
+
+    void onSearch(CCObject*)
+    {
+        #if GAME_VERSION > GV_1_3
+        SearchLayer::create(self)->show();
+        #endif
+    }
     
     void updatePageLabel() {
         if (!isInitialized || !self || !pageButton) return;
@@ -523,6 +561,17 @@ public:
             pageButton->setSelectedImage(newSprite);
             pageButtonSprite = newSprite;
         }
+    }
+
+    void exitSearch()
+    {
+        g_searchFilter = "";
+        g_filterArr = nullptr;
+        self->loadPage(getSearchObject(self));
+        self->updateLevelsLabel();
+
+        exitSearchBtn->setVisible(false);
+        exitSearchBtn->setEnabled(false);
     }
 };
 
@@ -576,7 +625,7 @@ bool LevelBrowserLayer_init(LevelBrowserLayer* self, GJSearchObject* searcher) {
         ext->pageMenu = CCMenu::create();
     
         if (ext->pageMenu) {
-            ext->pageButtonSprite = ButtonSprite::create("1", 20, 0, 0.6f, true, "bigFont.fnt", "GJ_button_02.png");
+            ext->pageButtonSprite = ButtonSprite::create("1", 20, 0, .3f, true, "bigFont.fnt", "GJ_button_02.png");
             
             if (ext->pageButtonSprite) {
                 ext->pageButton = CCMenuItemSpriteExtra::create(
@@ -594,7 +643,7 @@ bool LevelBrowserLayer_init(LevelBrowserLayer* self, GJSearchObject* searcher) {
                 }
             }
 
-            auto randomSpr = CCSprite::create(RANDOM_BUTTON_TEXTURE);
+            auto randomSpr = CCSprite::create(RANDOM_BUTTON_TEXTURE); // ¿?
             if (randomSpr) {
                 ext->randomPageButton = CCMenuItemSpriteExtra::create(
                     randomSpr,
@@ -608,6 +657,34 @@ bool LevelBrowserLayer_init(LevelBrowserLayer* self, GJSearchObject* searcher) {
                     ext->pageMenu->addChild(ext->randomPageButton);
                 }
             }
+
+#if GAME_VERSION > GV_1_3
+            if (getSearchType(searcher) == 98 || getSearchType(searcher) == 99)
+            {
+                auto spr = CCSprite::create("gj_findBtn_001.png");
+                auto btn = CCMenuItemSpriteExtra::create(
+                    spr,
+                    spr,
+                    ext,
+                    menu_selector(LevelBrowserLayerExt::onSearch)
+                );
+                btn->setPosition(ccp(25, winSize.height - 65));
+                ext->pageMenu->addChild(btn);
+
+                spr = CCSprite::create("gj_findBtnOff_001.png");
+                btn = CCMenuItemSpriteExtra::create(
+                    spr,
+                    spr,
+                    ext,
+                    menu_selector(LevelBrowserLayerExt::exitSearch)
+                );
+                btn->setPosition(ccp(25, winSize.height - 105));
+                btn->setVisible(false);
+                btn->setEnabled(false);
+                ext->exitSearchBtn = btn;
+                ext->pageMenu->addChild(btn);
+            }
+#endif
         }
         
         ext->isInitialized = true;
@@ -615,18 +692,56 @@ bool LevelBrowserLayer_init(LevelBrowserLayer* self, GJSearchObject* searcher) {
     }
     return true;
 }
+
 void (*TRAM_LevelBrowserLayer_loadPage)(LevelBrowserLayer* self, GJSearchObject* obj);
 void LevelBrowserLayer_loadPage(LevelBrowserLayer* self, GJSearchObject* obj) {
-    TRAM_LevelBrowserLayer_loadPage(self, obj);
-
     auto ext = LevelBrowserLayerExt::get(self);
-    if (ext && ext->isInitialized) {
-        ext->updatePageLabel();
+
+    if (g_searchFilter.empty())
+        TRAM_LevelBrowserLayer_loadPage(self, obj);
+    else
+    {
+#if GAME_VERSION > GV_1_3
+        if (getSearchType(obj) == 98 || getSearchType(obj) == 99)
+        {
+            auto arr = CCArray::create();
+            if (getSearchType(obj) == 99)
+                arr = GameLevelManager_getSavedLevels(GameLevelManager::sharedState());
+
+            else if(getSearchType(obj) == 98)
+                arr = LocalLevelManager_getLocalLevels(LocalLevelManager::sharedState());
+
+            auto newArr = CCArray::create();
+            for (auto i = 0; i < arr->count(); i++)
+            {
+                auto lvl = static_cast<GJGameLevel*>(arr->objectAtIndex(i));
+
+                auto name = lvl->m_sLevelName;
+                std::transform(name.begin(), name.end(), name.begin(), [](unsigned char c) {
+                    return std::tolower(c);
+                });
+
+                if (name.find(g_searchFilter) != std::string::npos)
+                    newArr->addObject(lvl);
+            }
+            g_filterArr = newArr;
+            ext->exitSearchBtn->setVisible(true);
+            ext->exitSearchBtn->setEnabled(true);
+            
+            TRAM_LevelBrowserLayer_loadPage(self, obj);
+        }
+#endif
     }
+
+    if (ext && ext->isInitialized)
+        ext->updatePageLabel();
 }
+
 void (*TRAM_LevelBrowserLayer_destructor)(LevelBrowserLayer*);
 void LevelBrowserLayer_destructor(LevelBrowserLayer* self) {
     LevelBrowserLayerExt::remove(self);
+    g_searchFilter = "";
+    g_filterArr = nullptr;
     TRAM_LevelBrowserLayer_destructor(self);
 }
 
@@ -687,5 +802,17 @@ void LevelBrowserLayer_om() {
     Omni::hook("_ZN14GJSearchObject6getKeyEv",
         reinterpret_cast<void*>(GJSearchObject_getKey),
         reinterpret_cast<void**>(&TRAM_GJSearchObject_getKey));
+#endif
+    Omni::hook("_ZN16GameLevelManager14getSavedLevelsEv",
+        reinterpret_cast<void*>(GameLevelManager_getSavedLevels_H),
+        reinterpret_cast<void**>(&GameLevelManager_getSavedLevels));
+#if GAME_VERSION > GV_1_0
+    Omni::hook("_ZNK17LocalLevelManager14getLocalLevelsEv",
+        reinterpret_cast<void*>(LocalLevelManager_getLocalLevels_H),
+        reinterpret_cast<void**>(&LocalLevelManager_getLocalLevels));
+#else
+    Omni::hook("_ZNK16GameLevelManager14getLocalLevelsEv",
+        reinterpret_cast<void*>(GameLevelManager_getLocalLevels_H),
+        reinterpret_cast<void**>(&GameLevelManager_getLocalLevels));
 #endif
 }

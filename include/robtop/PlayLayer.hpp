@@ -30,4 +30,18 @@ public:
 #if GAME_VERSION > GV_1_3
     void tintObjects(cocos2d::ccColor3B color, float duration);
 #endif
+
+    #if GAME_VERSION > GV_1_4
+    void switchToFlyMode(GameObject*, bool, bool);
+    void exitAirMode();
+    #else
+    void switchToFlyMode(GameObject*, bool);
+    #endif
+    void toggleFlipped(bool, bool);
+    void exitFlyMode();
+
+#if GAME_VERSION > GV_1_0
+    void switchToRollMode(GameObject*, bool);
+    void exitRollMode();
+#endif
 };

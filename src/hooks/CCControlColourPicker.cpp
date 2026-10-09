@@ -70,9 +70,19 @@ void RGBColorInputs::createTheThings() {
     blueInput->setAllowedChars("0123456789");
     blueInput->setAnchorPoint({0, 0.5});
 
+    this->hexInput = CCTextInputNode::create(100.0, 40.0, "HEX", "Thonburi", 12, "bigFont.fnt");
+    hexInput->setPosition(ccp(100, winSize.height - 120));
+    hexInput->setMaxLabelScale(0.4);
+    hexInput->setLabelPlaceholderScale(0.3);
+    setCharLimit(hexInput, 7);
+    hexInput->setTag(HEX_INPUT_TAG);
+    hexInput->setAllowedChars("0123456789abcdefABCDEF#");
+    hexInput->setAnchorPoint({0, 0.5});
+
     addChild(redInput);
     addChild(greenInput);
     addChild(blueInput);
+    addChild(hexInput);
 
     auto bg = extension::CCScale9Sprite::create("square02_001.png", CCRectMake(0,0,80,80));
     bg->setContentSize(CCSizeMake(80, 30));
@@ -94,6 +104,13 @@ void RGBColorInputs::createTheThings() {
     bg->setPosition({100, winSize.height - 90});
     addChild(bg); 
     bg->setScale(0.9);
+
+    bg = extension::CCScale9Sprite::create("square02_001.png", CCRectMake(0,0,80,80));
+    bg->setContentSize(CCSizeMake(80, 30));
+    bg->_setZOrder(-1);
+    bg->setPosition({100, winSize.height - 120});
+    addChild(bg); 
+    bg->setScale(0.9);
     
     auto label = CCLabelBMFont::create("R: ", "bigFont.fnt");
     label->setPosition(ccp(55, winSize.height - 30));
@@ -107,6 +124,11 @@ void RGBColorInputs::createTheThings() {
     
     label = CCLabelBMFont::create("B: ", "bigFont.fnt");
     label->setPosition(ccp(55, winSize.height - 90));
+    label->setScale(0.6f);
+    addChild(label);
+
+    label = CCLabelBMFont::create("HEX: ", "bigFont.fnt");
+    label->setPosition(ccp(40, winSize.height - 120));
     label->setScale(0.6f);
     addChild(label);
 }
@@ -149,6 +171,8 @@ bool RGBColorInputs::init(extension::CCControlColourPicker* parent) {
     this->colorPicker = false;
     this->editingFT = false;
     createTheThings();
+
+    return true;
 }
 
 void RGBColorInputs::draw() {
@@ -185,6 +209,9 @@ void RGBColorInputs::setupDelegates() {
     }
     if (this->blueInput) {
         setTextInputDelegate(this->blueInput, this);
+    }
+    if (this->hexInput) {
+        setTextInputDelegate(this->hexInput, this);
     }
 }
 void RGBColorInputs::setupFTDelegate() {
@@ -257,7 +284,7 @@ void RGBColorInputs::textChanged(CCTextInputNode* node) {
         getCSPSlider(csp)->setValue(value);
         csp->updateDurLabel();
         this->ignore = false;
-    } else {
+    } else if(node != hexInput) {
         std::string* str = intFilter(bro);
         int num = stoi(*str);
         _ccColor3B color = this->parent->getColorValue();
@@ -269,6 +296,30 @@ void RGBColorInputs::textChanged(CCTextInputNode* node) {
         else if (node == this->blueInput) color.b = num;
 
         this->parent->setColorValue(color);
+        currentColor = color;
+    } 
+    else
+    {
+        auto str = std::string(bro);
+        if (!str.empty() && str[0] == '#') 
+            str.erase(0, 1);
+        
+        if (str.length() != 6) return;
+
+        auto color = this->parent->getColorValue();
+        GLubyte r, g, b;
+        int tempR, tempG, tempB;
+
+        if (sscanf(str.c_str(), "%2x%2x%2x", &tempR, &tempG, &tempB) == 3)
+        {
+            r = static_cast<GLubyte>(tempR);
+            g = static_cast<GLubyte>(tempG);
+            b = static_cast<GLubyte>(tempB);
+        }
+
+        CCLog("r: %i, g: %i, b: %i", r,g,b);
+
+        this->parent->setColorValue(ccc3(r,g,b));
         currentColor = color;
     }
 }
@@ -309,6 +360,9 @@ void CCControlColourPicker_updateHueAndControlPicker(extension::CCControlColourP
         widget->redInput->setString(fmt::format("{}", (static_cast<unsigned int>(color.r))).c_str());
         widget->greenInput->setString(fmt::format("{}", (static_cast<unsigned int>(color.g))).c_str());
         widget->blueInput->setString(fmt::format("{}", (static_cast<unsigned int>(color.b))).c_str());
+        char hex[8];
+        snprintf(hex, sizeof(hex), "#%02X%02X%02X", color.r, color.g, color.b);
+        widget->hexInput->setString(hex);
         widget->ignore = false;
     }
 }
@@ -330,6 +384,9 @@ void CCControlColourPicker_colourSliderValueChanged(extension::CCControlColourPi
         widget->redInput->setString(fmt::format("{}", (static_cast<unsigned int>(color.r))).c_str());
         widget->greenInput->setString(fmt::format("{}", (static_cast<unsigned int>(color.g))).c_str());
         widget->blueInput->setString(fmt::format("{}", (static_cast<unsigned int>(color.b))).c_str());
+        char hex[8];
+        snprintf(hex, sizeof(hex), "#%02X%02X%02X", color.r, color.g, color.b);
+        widget->hexInput->setString(hex);
         widget->ignore = false;
     }
 }
@@ -350,6 +407,9 @@ void CCControlColourPicker_hueSliderValueChanged(extension::CCControlColourPicke
         widget->redInput->setString(fmt::format("{}", (static_cast<unsigned int>(color.r))).c_str());
         widget->greenInput->setString(fmt::format("{}", (static_cast<unsigned int>(color.g))).c_str());
         widget->blueInput->setString(fmt::format("{}", (static_cast<unsigned int>(color.b))).c_str());
+        char hex[8];
+        snprintf(hex, sizeof(hex), "#%02X%02X%02X", color.r, color.g, color.b);
+        widget->hexInput->setString(hex);
         widget->ignore = false;
     }
 }
@@ -397,6 +457,9 @@ bool ColorSelectPopup_init(ColorSelectPopup* self, GameObject* obj) {
         widget->greenInput->setString(fmt::format("{}", (static_cast<unsigned int>(color.g))).c_str());
         widget->blueInput->setString(fmt::format("{}", (static_cast<unsigned int>(color.b))).c_str());
         widget->ftInput->setString(fmt::format("{:.2f}", (getDuration(self))).c_str());
+        char hex[8];
+        snprintf(hex, sizeof(hex), "#%02X%02X%02X", color.r, color.g, color.b);
+        widget->hexInput->setString(hex);
         widget->ignore = false;
         widget->initColor(self->getColorValue());
         widget->currentColor = self->getColorValue();
@@ -469,6 +532,13 @@ void ColorSelectPopup_updateDurLabel(ColorSelectPopup* self) {
     }
 }
 
+void (*ColorPickerPopup_destructor)(ColorPickerPopup*);
+void ColorPickerPopup_destructor_H(ColorPickerPopup* self)
+{
+    CCDirector::sharedDirector()->getTouchDispatcher()->removeDelegate(self);
+    ColorPickerPopup_destructor(self);
+}
+
 
 void CCControlColourPicker_om() {
     Omni::hook("_ZN7cocos2d9extension21CCControlColourPicker4initEv",
@@ -497,6 +567,9 @@ void CCControlColourPicker_om() {
     Omni::hook("_ZN16ColorSelectPopup14updateDurLabelEv",
         reinterpret_cast<void*>(ColorSelectPopup_updateDurLabel),
         reinterpret_cast<void**>(&TRAM_ColorSelectPopup_updateDurLabel));
+    // Omni::hook("_ZN16ColorPickerPopupD1Ev",
+    //     reinterpret_cast<void*>(ColorPickerPopup_destructor_H),
+    //     reinterpret_cast<void**>(&ColorPickerPopup_destructor));
     // Omni::hook("_ZN16ColorPickerPopup11selectColorEN7cocos2d10_ccColor3BE",
     //     reinterpret_cast<void*>(ColorPickerPopup_selectColor),
     //     reinterpret_cast<void**>(&TRAM_ColorPickerPopup_selectColor));
