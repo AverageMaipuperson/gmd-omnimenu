@@ -40,6 +40,9 @@
 #endif
 #include "hooks/EndLevelLayer.cpp"
 #include "hooks/DrawGridLayer.cpp"
+#if GAME_VERSION < GV_1_4
+#include "hooks/SavedLevelsLayer.cpp"
+#endif
 #if GAME_VERSION >= GV_1_7
 #include "hooks/CCMenuItem.cpp"
 #endif
@@ -60,6 +63,9 @@
 #endif
 #include "hooks/AppDelegate.cpp"
 #include "hooks/SimpleAudioEngine.cpp"
+#if GDPS == BANANA_GDPS
+#include "bananagdps/banana.cpp"
+#endif
 
 void initialize_hooks() {
     PlayLayer_om();
@@ -126,4 +132,11 @@ void initialize_hooks() {
     CCMenuItem_om();
 #endif
     // CCMenuItemSpriteExtra_om();
+#if GDPS == BANANA_GDPS
+    banana_om();
+#endif
+
+#if GAME_VERSION < GV_1_4
+    SavedLevelsLayer_om();
+#endif
 }

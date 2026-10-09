@@ -11,3 +11,4 @@
 #define GDPS_NONE 0
 #define GDPS_NEOPOINTFOUR 1
 #define GDPS_1_7 2
+#define BANANA_GDPS 3

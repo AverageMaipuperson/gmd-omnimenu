@@ -9,6 +9,9 @@ public:
 
     void onMenuInfo(SEL_MenuHandler_1_7_compat);
     void onOpenMenu(SEL_MenuHandler_1_7_compat);
+    void onBanana(CCObject*);
+    void startShake();
+    void onBananaFinished(CCObject*);
 
     virtual bool init();
     virtual void keyBackClicked();

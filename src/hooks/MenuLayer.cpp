@@ -7,6 +7,9 @@
 #include "../layers/HaxMenu.hpp"
 #include "HaxManager.hpp"
 #include "Utils.hpp"
+#include "../bananagdps/banana.hpp"
+#include "GameSoundManager.hpp"
+#include "AchievementManager.hpp"
 #if GAME_VERSION >= GV_1_5
 #include "AppDelegate.hpp"
 #endif
@@ -18,6 +21,50 @@
 // void MenuLayer_onMoreGames(void* self) {
 //     CCDirector::sharedDirector()->pushScene(CCTransitionFade::create(0.5f, HaxLayer::scene(false)));
 // }
+
+void MenuLayer::startShake()
+{
+    auto director = CCDirector::sharedDirector();
+    auto winSize = director->getWinSize();
+
+    auto action = CCMoveTo::create(4, ccp(winSize.width / 2, winSize.height / 4));
+    auto move = CCEaseIn::create(action, .5f);
+    
+    auto stopShaking = CCCallFunc::create(g_banana, callfunc_selector(CCNode::stopAllActions));
+    auto moveThenStop = CCSequence::create((CCActionInterval*)move, stopShaking, NULL);
+    
+    g_bananaContainer->runAction(moveThenStop);
+
+    auto left = CCMoveBy::create(.05f, ccp(-3, 0));
+    auto right = CCMoveBy::create(.05f, ccp(3, 0));
+    auto shakeSequence = CCSequence::create((CCActionInterval*)left, (CCActionInterval*)right, NULL);
+    auto shake = CCRepeatForever::create((CCActionInterval*)shakeSequence);
+
+    g_banana->runAction(shake);
+}
+
+
+void MenuLayer::onBanana(CCObject*)
+{
+    g_bananaMenu->setEnabled(false);
+
+    GameSoundManager::sharedManager()->playEffect("banana.mp3", 1.0, 0.0, 1.0);
+    startShake();
+    this->scheduleOnce(schedule_selector(MenuLayer::onBananaFinished), 6);
+}
+
+void MenuLayer::onBananaFinished(CCObject*)
+{
+    AchievementManager::sharedState()->reportAchievementWithID("geometry.ach.banana", 100, true);
+    AchievementNotifier::sharedState()->notifyAchievement("GOLD BANANA", "Is it edible?", "color_12");
+    auto d = cocos2d::CCUserDefault::sharedUserDefault();
+    d->setBoolForKey("unlocked-banana", true);
+    d->flush();
+
+    auto fadeOut = CCFadeOut::create(1);
+    g_banana->runAction(fadeOut);
+}
+
 void MenuLayer::onOpenMenu(SEL_MenuHandler_1_7_compat) {
     auto haxOverlay = HaxMenu::create(this); //HaxOverlay::create(this);
     this->addChild(haxOverlay, 1000);
@@ -91,6 +138,38 @@ bool MenuLayer_init(cocos2d::CCLayer* self) {
         recalculateStars();
     }
     #endif
+
+#if GDPS == BANANA_GDPS
+    if (!cocos2d::CCUserDefault::sharedUserDefault()->getBoolForKey("unlocked-bananaa"))
+    {
+        CocosDenshion::SimpleAudioEngine::sharedEngine()->preloadEffect("banana.mp3");
+        auto spr = CCSprite::create("golden-banana.png");
+        spr->setScale(.33f);
+
+        auto container = CCNode::create();
+        container->setPosition(ccp(winSize.width / 2, -spr->boundingBox().size.height));
+        self->addChild(container, 1234);
+
+        container->addChild(spr); 
+        spr->setPosition(CCPointZero);
+
+        g_banana = spr;
+        g_bananaContainer = container;
+
+        spr = CCSprite::create("banana.png");
+        spr->setOpacity(0);
+        spr->setRotation(-90);
+        spr->setScale(1.2f);
+
+        auto item = CCMenuItemSprite::create(spr, spr, self, menu_selector(MenuLayer::onBanana));
+        auto menu = CCMenu::create(item, NULL);
+        menu->setPosition(CCPointZero);
+        item->setPosition(ccp(winSize.width / 2 + 50, winSize.height / 1.5 + 50));
+        self->addChild(menu, 1234);
+
+        g_bananaMenu = menu;
+    }
+#endif
 
     return true;
 }

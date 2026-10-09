@@ -281,6 +281,12 @@ bool LevelInfoLayer_init(LevelInfoLayer* self, GJGameLevel* level) {
     featureFrame->_setZOrder(-1);
     self->addChild(featureFrame);
 #endif
+    /*
+    auto menu = static_cast<CCMenu*>(MEMBER_BY_OFFSET(CCMenuItemSpriteExtra*, self, 0x158)->getParent());
+    menu->alignItemsVerticallyWithPadding(3);
+    menu->setPosition(ccp(winSize.width - 30, winSize.height / 2 + 50));
+    menu->setAnchorPoint(ccp(.5f, 1));
+    */
     return true;
 }
 

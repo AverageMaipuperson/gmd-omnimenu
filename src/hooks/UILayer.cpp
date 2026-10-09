@@ -249,7 +249,7 @@ void UILayer::createPCommand() {
 
 void UILayer::speedUp() {
     PlayerObject* player = getPlayer();
-    addXVelocity(player, 0.5d);
+    addXVelocity(player, 0.5);
     HaxManager& hax = HaxManager::sharedState();
     hax.pSpeedModified += 1;
     hax.setCheating(true);
@@ -257,7 +257,7 @@ void UILayer::speedUp() {
 }
 void UILayer::speedDown() {
     PlayerObject* player = getPlayer();
-    addXVelocity(player, -0.5d);
+    addXVelocity(player, -0.5);
     HaxManager& hax = HaxManager::sharedState();
     hax.pSpeedModified -= 1;
     hax.setCheating(true);
@@ -265,7 +265,7 @@ void UILayer::speedDown() {
 }
 void UILayer::gravityUp() {
     PlayerObject* player = getPlayer();
-    addGravity(player, 0.1d);
+    addGravity(player, 0.1);
     HaxManager& hax = HaxManager::sharedState();
     hax.pGravityModified += 1;
     hax.setCheating(true);
@@ -273,7 +273,7 @@ void UILayer::gravityUp() {
 }
 void UILayer::gravityDown() {
     PlayerObject* player = getPlayer();
-    addGravity(player, -0.1d);
+    addGravity(player, -0.1);
     HaxManager& hax = HaxManager::sharedState();
     hax.pGravityModified -= 1;
     hax.setCheating(true);
@@ -281,7 +281,7 @@ void UILayer::gravityDown() {
 }
 void UILayer::yStartUp() {
     PlayerObject* player = getPlayer();
-    addYStart(player, 0.5d);
+    addYStart(player, 0.5);
     HaxManager& hax = HaxManager::sharedState();
     hax.pYStartModified += 1;
     hax.setCheating(true);
@@ -289,7 +289,7 @@ void UILayer::yStartUp() {
 }
 void UILayer::yStartDown() {
     PlayerObject* player = getPlayer();
-    addYStart(player, -0.5d);
+    addYStart(player, -0.5);
     HaxManager& hax = HaxManager::sharedState();
     hax.pYStartModified -= 1;
     hax.setCheating(true);
