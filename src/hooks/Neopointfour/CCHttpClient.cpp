@@ -79,30 +79,42 @@ void (*TRAM_CCHttpClient_send)(cocos2d::extension::CCHttpClient* self, cocos2d::
 void CCHttpClient_send(cocos2d::extension::CCHttpClient* self, cocos2d::extension::CCHttpRequest* request) {
     const char* url = request->getUrl();
     HaxManager& hax = HaxManager::sharedState();
-    if (currentUploadingLevel) {
-        if (url && strstr(url, "uploadGJLevel.php") != nullptr) {
-            if (hax.originalIDMap.find(currentUploadingLevel) != hax.originalIDMap.end()) {
-                int originalID = hax.originalIDMap[currentUploadingLevel];
-                if (originalID > 0) {
-                    char* data = request->getRequestData();
-                    int dataSize = request->getRequestDataSize();
-                    
-                    if (data && dataSize > 0) {
-                        std::string postData(data, dataSize);
-                        
-                        std::stringstream ss;
-                        ss << postData << "&original=" << originalID;
-                        std::string newData = ss.str();
-                        
-                        request->setRequestData(newData.c_str(), newData.length());
-                    } else {
-                    }
-                } else {
-                }
-            } else {
+
+    if (url && strstr(url, "neopointfour.host") != nullptr) {
+        char* data = request->getRequestData();
+        int dataSize = request->getRequestDataSize();
+
+        if (data && dataSize > 0) {
+            std::string postData(data, dataSize);
+
+            if (postData.find("udid=") == std::string::npos) {
+                std::string udid = getPlayerUDID();
+                postData += "&udid=" + udid;
+                request->setRequestData(postData.c_str(), postData.length());
             }
         }
-    } else {
+    }
+    
+    if (currentUploadingLevel && url && strstr(url, "uploadGJLevel.php") != nullptr) {
+        char* data = request->getRequestData();
+        int dataSize = request->getRequestDataSize();
+
+        if (data && dataSize > 0) {
+            std::string postData(data, dataSize);
+
+            auto it = hax.originalIDMap.find(currentUploadingLevel);
+            if (it != hax.originalIDMap.end() && it->second > 0) {
+                std::stringstream ss;
+                ss << "&original=" << it->second;
+                postData += ss.str();
+            }
+
+            if (!currentUploadingLevel->m_bIsVerified) {
+                postData += "&verifyHacked=1";
+            }
+
+            request->setRequestData(postData.c_str(), postData.length());
+        }
     }
 
     if (url && strstr(url, "getGJScores.php") != nullptr) {
@@ -120,7 +132,6 @@ void CCHttpClient_send(cocos2d::extension::CCHttpClient* self, cocos2d::extensio
             }
 
             request->setRequestData(postData.c_str(), postData.length());
-        } else {
         }
     }
     
@@ -168,7 +179,6 @@ void CCHttpClient_send(cocos2d::extension::CCHttpClient* self, cocos2d::extensio
                     int songID = 0;
                     if (value) {
                         songID = value->intValue() + 1;
-                    } else {
                     }
                     
                     std::stringstream ss;
@@ -181,9 +191,7 @@ void CCHttpClient_send(cocos2d::extension::CCHttpClient* self, cocos2d::extensio
                 }
                 
                 request->setRequestData(postData.c_str(), postData.length());
-            } else {
             }
-        } else {
         }
     }
     
@@ -247,7 +255,6 @@ void CCHttpClient_send(cocos2d::extension::CCHttpClient* self, cocos2d::extensio
                 std::stringstream statsStream;
                 statsStream << "&attempts=" << attempts << "&jumps=" << jumps;
                 postData += statsStream.str();
-            } else {
             }
 
             auto GM = GameManager::sharedState();
@@ -257,7 +264,6 @@ void CCHttpClient_send(cocos2d::extension::CCHttpClient* self, cocos2d::extensio
             postData += shipStream.str();
             
             request->setRequestData(postData.c_str(), postData.length());
-        } else {
         }
     }
 

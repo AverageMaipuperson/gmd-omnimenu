@@ -17,7 +17,8 @@ std::string ToString(T val);
 
 int stoi(const std::string& str);
 void getPackageName();
-GameObject* getClosest(std::vector<GameObject*> arr, CCPoint pos);
+int getIntForKey(const char* key, int defaultValue);
+void setIntForKey(int value, const char* key);
 std::vector<GameObject*> filterObjects(std::vector<GameObject*> arr, std::unordered_set<int> ids);
 
 template <typename T>

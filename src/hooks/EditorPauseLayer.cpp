@@ -214,10 +214,10 @@ void EditorPauseLayer_saveLevel(EditorPauseLayer* self) {
     }
 }
 
-void (*EditorPauseLayer_onResume)(EditorPauseLayer* self);
-void EditorPauseLayer_onResume_H(EditorPauseLayer* self) {
+void (*EditorPauseLayer_onResume)(EditorPauseLayer* self SEL_MenuHandler_1_7_compat2);
+void EditorPauseLayer_onResume_H(EditorPauseLayer* self SEL_MenuHandler_1_7_compat2) {
     auto& hax = HaxManager::sharedState();
-    EditorPauseLayer_onResume(self);
+    EditorPauseLayer_onResume(self sender_param_1_7);
     if (hax.getModuleEnabled(ModuleID::HIDE_ICON_ON_EDITOR) && hax.getModuleEnabled(ModuleID::FLOATING_ICON) && hax.omniMenu) {
         hax.omniMenu->m_sMenu->setVisible(false);
         hax.omniMenu->m_sMenu->setEnabled(false);

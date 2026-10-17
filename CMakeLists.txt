@@ -9,7 +9,7 @@ project(menu)
 
 set(VERSIONS 1 2 3 4 5 6 7 10 18)
 
-add_library(menu SHARED src/main.cc src/layers/HaxMenu.cpp src/version/VersionUtils.cpp src/Utils.cpp src/layers/HaxButton.cpp src/layers/CCMenuItemExt.cpp)
+add_library(menu SHARED src/main.cc src/layers/HaxMenu.cpp src/version/VersionUtils.cpp src/Utils.cpp src/layers/HaxButton.cpp src/layers/CCMenuItemExt.cpp src/layers/CustomAlertLayer.cpp)
 
 set(DOBBY_DEBUG OFF CACHE INTERNAL "" FORCE)
 set(DOBBY_GENERATE_SHARED OFF CACHE INTERNAL "" FORCE)
@@ -24,7 +24,7 @@ target_link_libraries(menu fmt)
 
 add_definitions(-DGAME_VERSION=${GAME_VERSION})
 if (NOT GAME_VERSION IN_LIST VERSIONS)
-    message(FATAL_ERROR "GAME_VERSION needs to be defined. The possible values are: 1 (1.02), 2 (1.11), 3 (1.22), 4 (1.3), 5 (1.41), 6 (1.51), 7 (1.6), 10 (1.7)")
+    message(FATAL_ERROR "GAME_VERSION needs to be defined. The possible values are: 1 (1.02), 2 (1.11), 3 (1.22), 4 (1.3), 5 (1.41), 6 (1.51), 7 (1.6), 10 (1.7), 18 (1.8)")
 endif()
 
 if(GAME_VERSION LESS 6)
@@ -58,7 +58,6 @@ elseif(GAME_VERSION EQUAL 10)
     message("Linking with 1.7")
     target_link_libraries(menu ${CMAKE_CURRENT_SOURCE_DIR}/src/version/1.7/libcocos2dcpp.so GLESv2 log android)
 elseif(GAME_VERSION EQUAL 18)
-    message(FATAL_ERROR "1.8 is not supported yet")
     message("Linking with 1.8")
     target_link_libraries(menu ${CMAKE_CURRENT_SOURCE_DIR}/src/version/1.8/libcocos2dcpp.so GLESv2 log android)
 endif()
@@ -70,12 +69,14 @@ if(GAME_VERSION LESS 10)
         ${CMAKE_CURRENT_SOURCE_DIR}/include/cocos2d/cocos2dx/platform/android
         ${CMAKE_CURRENT_SOURCE_DIR}/include/cocos2d/cocos2dx/kazmath/include)
 else()
-    target_compile_options(menu PRIVATE -fvisibility=default)
     target_include_directories(menu PRIVATE
         ${CMAKE_CURRENT_SOURCE_DIR}/include/cocos2d-2.2.3/cocos2dx/include
         ${CMAKE_CURRENT_SOURCE_DIR}/include/cocos2d-2.2.3/cocos2dx
         ${CMAKE_CURRENT_SOURCE_DIR}/include/cocos2d-2.2.3/cocos2dx/platform/android
         ${CMAKE_CURRENT_SOURCE_DIR}/include/cocos2d-2.2.3/cocos2dx/kazmath/include)
+
+    # set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=address")
+    # set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -fsanitize=address -fsanitize-blacklist=${CMAKE_CURRENT_SOURCE_DIR}/asan_ignore.txt")
 endif()
 
 
@@ -90,4 +91,4 @@ target_include_directories(menu PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/src/hooks
     ${CMAKE_CURRENT_SOURCE_DIR}/src/version
     ${CMAKE_CURRENT_SOURCE_DIR}/vendor/fmt
-    ${CMAKE_CURRENT_SOURCE_DIR}/include/layers/RBot)
+)

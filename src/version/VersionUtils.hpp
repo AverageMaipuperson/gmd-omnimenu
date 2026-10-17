@@ -19,6 +19,7 @@
 #include "GameStatsManager.hpp"
 #include "LeaderboardsLayer.hpp"
 #include "Slider.hpp"
+#include "CheckpointObject.hpp"
 
 #define MEMBER_BY_OFFSET(type, var, offset) \
     (*reinterpret_cast<type*>(reinterpret_cast<uintptr_t>(var) + static_cast<uintptr_t>(offset)))
@@ -69,6 +70,10 @@ void setPlayLayerPractice(bool isPractice);
 cocos2d::CCArray* getPlayLayerCheckpoints(PlayLayer* playLayer);
 cocos2d::CCArray* getPlayLayerCheckpoints();
 cocos2d::CCPoint getCheckpointPosition(CCNode* checkpoint);
+cocos2d::CCPoint getCheckpointPosition01(CCNode* checkpoint);
+cocos2d::CCPoint getCheckpointPosition02(CCNode* checkpoint);
+PlayerCheckpoint* getPlayerCheck01(CCNode* checkpoint);
+PlayerCheckpoint* getPlayerCheck02(CCNode* checkpoint);
 cocos2d::CCPoint getStartPos(PlayLayer* playLayer);
 cocos2d::CCPoint getStartPos();
 CCLayer* getSelectLayerScroll(CCLayer* selectLayer);
@@ -253,6 +258,7 @@ bool getCheckpointFlipped(CCNode* checkpoint);
 CCDictionary* getSettingsDict(GameLevelManager* glman);
 CCDictionary* getCompletedDict(GameStatsManager* gsman);
 CCDictionary* getStatsDict(GameStatsManager* gsman);
+CCDictionary* getSavedLevels(GameLevelManager* glman);
 int getPlayerShip(GameManager* gm);
 CCLayer* getMainLayer(CCLayer* infoLayer);
 #endif
@@ -260,3 +266,4 @@ int getTotalLevels(LevelBrowserLayer* browser);
 const char* keyToFrame(int objectID);
 CCPoint getTouchLocation(CCTouch* touch);
 CCPoint getPreviousTouchLocation(CCTouch* touch);
+void setShaderProgram(CCNode*, CCGLProgram*);

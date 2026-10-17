@@ -123,7 +123,11 @@ void PlayerObject_playerDestroyed(PlayerObject* self) {
             MEMBER_BY_OFFSET(float, self, PlayerObject__m_unk1) = 0;
         }
         MEMBER_BY_OFFSET(bool, self, PlayerObject__m_unk2) = true;
+#if GAME_VERSION < GV_1_8
         self->stopRotation();
+#else
+        self->stopRotation(true);
+#endif
         self->deactivateParticle();
         self->touchedObject(nullptr);
         getShipFireParticles(self)->stopSystem();

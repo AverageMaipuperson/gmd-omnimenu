@@ -82,10 +82,15 @@ bool InfoLayer_init(CCLayer* self, GJGameLevel* lvl) {
         menu_selector(InfoButtonHandler::onInfoClick)
     );
     infoBtn->setSizeMult(1.2f);
-    
     infoBtn->setUserObject(handler);
-    infoBtn->setPosition(winSize.width - 200.f, (winSize.height / 2) - 167.f);
-    
+
+    CCPoint worldPos = ccp(
+        (winSize.width * 0.5f + 220.f) - 26.f,
+        (winSize.height * 0.5f + 145.f) - 17.f
+    );
+    CCPoint localPos = targetMenu->convertToNodeSpace(worldPos);
+
+    infoBtn->setPosition(localPos);
     targetMenu->addChild(infoBtn);
     
     return true;

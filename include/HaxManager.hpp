@@ -273,6 +273,7 @@ public:
     bool doSpawnCircles;
     _ccColor3B noclipTintColor;
     std::string noclipTintOpacity;
+    int savedUserID;
 
     bool getModuleEnabled(ModuleID id) {
         return modules[id].enabled;
@@ -1064,7 +1065,7 @@ private:
             "Unlisted Objects", 
             "Adds unlisted objects to the editor, allowing them to be used in levels.", 
             false, ModuleCategory::Editor, [](bool _){});
-#ifndef FORCE_AUTO_SAFE_MODE
+#if !defined(FORCE_AUTO_SAFE_MODE) || GDPS == GDPS_NEOPOINTFOUR
         modules[ModuleID::VERIFY_BYPASS] = Module(
             "verify_bypass",
             "Verify Bypass", 
@@ -1217,7 +1218,7 @@ private:
             "Fast Menu", 
             "Makes fade transitions instant.", 
             false, ModuleCategory::Universal, [](bool _){});
-#if GAME_VERSION < GV_1_7
+
         modules[ModuleID::FLOATING_ICON] = Module(
             "floating_icon",
             "Floating Menu Icon",
@@ -1226,7 +1227,6 @@ private:
             ModuleSubcategory::None,
             ModuleSubcategory::FloatingMenuIcon
         );
-#endif
 
 #if GAME_VERSION < GV_1_5
         modules[ModuleID::FONT_OFFSET_FIX] = Module(
@@ -1260,7 +1260,7 @@ private:
             "GDShare", 
             "Adds buttons to convert a level to a .gmd file and vice-versa. May not work on older Android versions.", 
             false, ModuleCategory::Universal, [](bool _){});
-#if GAME_VERSION < GV_1_7
+
         modules[ModuleID::HIDE_ICON_ON_PLAY] = Module(
             "hide_icon_on_play",
             "Hide Icon In Play",
@@ -1277,7 +1277,7 @@ private:
             ModuleSubcategory::FloatingMenuIcon,
             ModuleSubcategory::None
         );
-#endif
+
 #if GAME_VERSION < GV_1_2
         modules[ModuleID::INPUT_BUG_FIX] = Module(
             "input_bug_fix",

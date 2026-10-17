@@ -4,6 +4,7 @@
 #include "DS_Dictionary.hpp"
 #include "GJGameLevel.hpp"
 #include "HaxManager.hpp"
+#include <unordered_set>
 
 CCSprite* createInfoSprite() {
     return CCSprite::createWithSpriteFrameName("GJ_infoIcon_001.png");
@@ -331,6 +332,8 @@ void getPackageName() {
     hax.packageName = "com.cynigdx.onepointfour";
 #elif GDPS == GDPS_1_7
     hax.packageName = "com.ariccox.aricco17gdps";
+#elif GDPS == BANANA_GDPS
+    hax.packageName = "com.pobtorx.geometrydash";
 #else
     hax.packageName = "com.robtopx.geometryjump";
 #endif
@@ -383,3 +386,28 @@ std::vector<GameObject*> filterObjects(std::vector<GameObject*> arr, std::unorde
 
     return filtered;
 }
+
+#if GDPS == GDPS_NEOPOINTFOUR
+int getIntForKey(const char* key, int defaultValue = 0) {
+    auto GLM = GameLevelManager::sharedState();
+    auto dict = getSettingsDict(GLM);
+    
+    auto value = dict->valueForKey(key);
+    if (value) {
+        return value->intValue();
+    }
+    return defaultValue;
+}
+
+void setIntForKey(int value, const char* key) {
+    auto GLM = GameLevelManager::sharedState();
+    auto dict = getSettingsDict(GLM);
+    
+    auto strValue = CCString::createWithFormat("%d", value);
+    
+    std::string keyStr;
+    keyStr.assign(key);
+    
+    dict->setObject(strValue, keyStr);
+}
+#endif

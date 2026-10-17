@@ -13,7 +13,8 @@
 /**/ #define CCTextInputNode__m_textField      0x168 /**/ // CCTextInputNode::getTextField
 /**/ #define CCEGLViewProtocol__m_screenBottom  0xe4 /**/ // cocos2d::CCEGLViewProtocol::getScreenBottom
 /**/ #define CheckpointObject__m_isFlipped     0x158 /**/ // CheckpointObject::getIsFlipped
-/**/ #define CheckpointObject__m_playerPos     0x12c /**/ // CheckpointObject::getPlayerPos
+/**/ #define CheckpointObject__m_playerCheck01  0xec /**/ // CheckpointObject::setPlayerCheck01
+/**/ #define CheckpointObject__m_playerCheck02  0xf0 /**/ // CheckpointObject::setPlayerCheck02
 /**/ #define ColorPickerPopup__m_colorWheel    0x1cc /**/ // ColorPickerPopup::selectColor
 /**/ #define ColorSelectPopup__m_colorWheel    0x1cc /**/ // ColorSelectPopup::selectColor
 /**/ #define ColorSelectPopup__m_duration      0x1e4 /**/ // ColorSelectPopup::sliderChanged
@@ -51,6 +52,7 @@
 /**/ #define GameObject__m_useAudioScale       0x2fc /**/ // GameObject::getUseAudioScale
 /**/ #define GameStatsManager__m_completedDict 0x12c /**/ // GameStatsManager::completedLevel
 /**/ #define GameStatsManager__m_statsDict     0x128 /**/ // GameStatsManager::getStat
+/**/ #define GameLevelManager__m_savedLevels   0x144 /**/ // GameLevelManager::getSavedLevels
 /**/ #define GJComment__m_commentID            0x130 /**/ // GJComment::getCommentID
 /**/ #define GJSearchObject__m_page            0x138 /**/ // GJSearchObject::getPage
 /**/ #define GJSearchObject__m_type            0x128 /**/ // GJSearchObject::getType

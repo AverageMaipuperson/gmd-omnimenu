@@ -113,13 +113,11 @@ bool MenuLayer_init(cocos2d::CCLayer* self) {
     CCSprite* menuSpr = CCSprite::create("OMNImenu_btn.png");
 
     if (hax.getModuleEnabled(ModuleID::FLOATING_ICON) && !hax.omniMenu) {
-#if GAME_VERSION < GV_1_7
         CCLog("creating haxbutton");     
         hax.omniMenu = HaxButton::create();
         hax.omniMenu->retain();
         hax.omniMenu->setup();
-#endif
-    } else {
+    } else if(!hax.getModuleEnabled(ModuleID::FLOATING_ICON)) {
         CCMenuItemSpriteExtra* menuBtn = CCMenuItemSpriteExtra::create(menuSpr, menuSpr, self, menu_selector(MenuLayer::onOpenMenu));
 #ifndef STEALTH_MODE 
         bottomMenu->addChild(menuBtn);

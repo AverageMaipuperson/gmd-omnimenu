@@ -3,6 +3,7 @@
 #include "LevelBrowserLayer.hpp"
 #include "ButtonSprite.hpp"
 #include "SearchLayer.hpp"
+#include "CustomAlertLayer.hpp"
 
 #if GAME_VERSION >= GV_1_4
 
@@ -105,11 +106,10 @@ class LevelBrowserLayerExt;
 
 std::map<void*, LevelBrowserLayerExt*> extensionMap;
 
-class JumpToPageLayer : public CCLayerColor, public TextInputDelegate {
+class JumpToPageLayer : public CustomAlertLayer, public TextInputDelegate {
 public:
     LevelBrowserLayer* m_levelBrowserLayer;
     CCTextInputNode* m_input;
-    CCLayer* m_mainLayer;
     CCMenu* m_buttonMenu;
     bool m_isValid;
     
@@ -126,7 +126,7 @@ public:
     bool init(LevelBrowserLayer* lbl) {
         m_levelBrowserLayer = lbl;
         m_isValid = true;
-        if (!CCLayerColor::initWithColor({0, 0, 0, 105})) {
+        if (!CustomAlertLayer::init()) {
             return false;
         }
         auto winSize = CCDirector::sharedDirector()->getWinSize();
@@ -134,10 +134,6 @@ public:
         this->setTouchEnabled(true);
 
         m_mainLayer = CCLayer::create();
-        if (!m_mainLayer) {
-            return false;
-        }
-        this->addChild(m_mainLayer);
 
         auto bg = extension::CCScale9Sprite::create("GJ_square01.png", {0, 0, 80, 80});
         bg->setContentSize({280.f, 160.f});
@@ -205,24 +201,7 @@ public:
         lastPageBtn->setPosition({winSize.width / 2 + 80.f, winSize.height / 2 - 45.f});
         m_buttonMenu->addChild(lastPageBtn);
 
-        setupTouchPriority();
         return true;
-    }
-    
-    void setupTouchPriority() {
-        auto dispatcher = CCDirector::sharedDirector()->getTouchDispatcher();
-        
-        dispatcher->removeDelegate(this);
-        dispatcher->removeDelegate(m_buttonMenu);
-        dispatcher->removeDelegate(m_input);
-
-        m_input->setTouchEnabled(true);
-        dispatcher->addTargetedDelegate(m_input, -130, true);
-        
-        m_buttonMenu->setTouchEnabled(true);
-        dispatcher->addTargetedDelegate(m_buttonMenu, -129, true);
-        
-        dispatcher->addTargetedDelegate(this, -128, true);
     }
     
     CCSprite* createDoubleArrowSprite(bool flipX = true) {
@@ -353,28 +332,6 @@ public:
             m_levelBrowserLayer->loadPage(searchObject);
         }
         onClose(nullptr);
-    }
-    
-    virtual void registerWithTouchDispatcher() override {}
-    virtual bool ccTouchBegan(CCTouch* touch, CCEvent* event) override {
-        return true;
-    }
-    virtual void ccTouchMoved(CCTouch* touch, CCEvent* event) override {}
-    virtual void ccTouchEnded(CCTouch* touch, CCEvent* event) override {}
-    virtual void ccTouchCancelled(CCTouch* touch, CCEvent* event) override {}
-    virtual void keyBackClicked() override {
-        onClose(nullptr);
-    }
-    
-    void show() {
-#if GAME_VERSION < GV_1_7
-        auto scene = CCDirector::sharedDirector()->getRunningScene();
-#else
-        auto scene = MEMBER_BY_OFFSET(CCScene*, CCDirector::sharedDirector(), 0x98);
-#endif
-        if (scene) {
-            scene->addChild(this, 999);
-        }
     }
 };
 
@@ -534,6 +491,7 @@ public:
     void onSearch(CCObject*)
     {
         #if GAME_VERSION > GV_1_3
+        // self->addChild(SearchLayer::create(self));
         SearchLayer::create(self)->show();
         #endif
     }

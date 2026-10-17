@@ -668,10 +668,8 @@ public:
     virtual void removeFromParentAndCleanup(bool cleanup);
 
     //Robtop Modification
-#if GAME_VERSION >= GV_1_8
+#if GAME_VERSION > GV_1_7
     virtual void removeMeAndCleanup();
-#else
-    void removeMeAndCleanup();
 #endif
     /** 
      * Removes a child from the container with a cleanup

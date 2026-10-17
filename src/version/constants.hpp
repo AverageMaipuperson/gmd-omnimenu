@@ -3,7 +3,7 @@
 
 
 
-#define MENU_VERSION "v1.3.0"
+#define MENU_VERSION "v1.3.1"
 #define MENU_SETTINGS_OLD "settings" READABLE_GAME_VERSION ".json"
 #define MENU_SETTINGS_PATH "/storage/emulated/0/OMNImenu/"
 
@@ -27,8 +27,8 @@
     #define JAVA_PATH_MAIN "com/cynigdx/onepointfour"
     #define JAVA_PATH_MAIN_JNI_HOOK com_cynigdx_onepointfour
 #elif GDPS == BANANA_GDPS
-    #define JAVA_PATH_MAIN "com/pobtorx/geometryjump"
-    #define JAVA_PATH_MAIN_JNI_HOOK com_pobtorx_geometryjump
+    #define JAVA_PATH_MAIN "com/pobtorx/geometrydash"
+    #define JAVA_PATH_MAIN_JNI_HOOK com_pobtorx_geometrydash
 #else
     #error "Unknown GDPS"
 #endif
@@ -99,6 +99,7 @@
     #define dummy_sender_param_1_7 , nullptr
     #define hook_1_7_compat CCObject* sender
     #define _Cocos2dxMusic "org/cocos2dx/lib/Cocos2dxMusic"
+    #define COCOS_2_2_3
 #else
     #define SEL_MenuHandler_1_7_compat
     #define SEL_MenuHandler_1_7_compat2
@@ -108,3 +109,19 @@
     #define hook_1_7_compat CCNode* sender
     #define _Cocos2dxMusic "org/cocos2dx/lib/p"
 #endif
+
+#define CC_RGBA_PROTOCOL_VTABLE \
+void setColor(_ccColor3B const& color)  { CCLayerColor::setColor(color); } \
+_ccColor3B const& getColor()  { return CCLayerColor::getColor(); } \
+_ccColor3B const& getDisplayedColor()  { return CCLayerColor::getDisplayedColor(); } \
+GLubyte getDisplayedOpacity()  { return CCLayerColor::getDisplayedOpacity(); } \
+GLubyte getOpacity()  { return CCLayerColor::getOpacity(); } \
+void setOpacity(GLubyte opacity)  { CCLayerColor::setOpacity(opacity); } \
+bool isCascadeColorEnabled()  { return CCLayerColor::isCascadeColorEnabled(); } \
+void setCascadeColorEnabled(bool enabled)  { CCLayerColor::setCascadeColorEnabled(enabled); } \
+void updateDisplayedColor(_ccColor3B const& c)  { CCLayerColor::updateDisplayedColor(c); } \
+bool isCascadeOpacityEnabled()  { return CCLayerColor::isCascadeOpacityEnabled(); } \
+void setCascadeOpacityEnabled(bool enabled)  { CCLayerColor::setCascadeOpacityEnabled(enabled); } \
+void updateDisplayedOpacity(unsigned char o)  { CCLayerColor::updateDisplayedOpacity(o); } \
+void setBlendFunc(_ccBlendFunc b)  { CCLayerColor::setBlendFunc(b); } \
+_ccBlendFunc getBlendFunc()  { return CCLayerColor::getBlendFunc(); }

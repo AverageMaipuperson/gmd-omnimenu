@@ -15,6 +15,7 @@
 #include "CCTextInputNode.hpp"
 #include "LevelBrowserLayer.hpp"
 #include "LeaderboardsLayer.hpp"
+#include "CheckpointObject.hpp"
 #if GAME_VERSION > GV_1_2
 #include "ObjectToolbox.hpp"
 #endif
@@ -153,9 +154,33 @@ cocos2d::CCArray* getPlayLayerCheckpoints(PlayLayer* playLayer) {
 cocos2d::CCArray* getPlayLayerCheckpoints() {
     return getPlayLayerCheckpoints(getPlayLayer());
 }
+#if GAME_VERSION == GV_1_8
+PlayerCheckpoint* getPlayerCheck01(CCNode* checkpoint)
+{
+    return MEMBER_BY_OFFSET(PlayerCheckpoint*, checkpoint, CheckpointObject__m_playerCheck01);
+}
+
+PlayerCheckpoint* getPlayerCheck02(CCNode* checkpoint)
+{
+    return MEMBER_BY_OFFSET(PlayerCheckpoint*, checkpoint, CheckpointObject__m_playerCheck02);
+}
+#endif
+
+#if GAME_VERSION < GV_1_8
 cocos2d::CCPoint getCheckpointPosition(CCNode* checkpoint) {
     return MEMBER_BY_OFFSET(cocos2d::CCPoint, checkpoint, CheckpointObject__m_playerPos);
 }
+#else
+cocos2d::CCPoint getCheckpointPosition01(CCNode* checkpoint) {
+    auto pc = getPlayerCheck01(checkpoint);
+    return MEMBER_BY_OFFSET(cocos2d::CCPoint, pc, PlayerCheckpoint__m_playerPos);
+}
+
+cocos2d::CCPoint getCheckpointPosition02(CCNode* checkpoint) {
+    auto pc = getPlayerCheck02(checkpoint);
+    return MEMBER_BY_OFFSET(cocos2d::CCPoint, pc, PlayerCheckpoint__m_playerPos);
+}
+#endif
 cocos2d::CCPoint getStartPos(PlayLayer* playLayer) {
     return MEMBER_BY_OFFSET(cocos2d::CCPoint, playLayer, PlayLayer__m_startPos);
 }
@@ -206,7 +231,7 @@ void setObjectLimit(int limit) {
     } else {
         DobbyCodePatch(
             reinterpret_cast<void*>(get_address(object_limit)),
-#if GAME_VERSION == GV_1_5 || GAME_VERSION == GV_1_7
+#if GAME_VERSION == GV_1_5 || GAME_VERSION >= GV_1_7
             std::vector<uint8_t>({0xdd}).data(), 1
 #elif GAME_VERSION == GV_1_6
             std::vector<uint8_t>({0xdb}).data(), 1
@@ -214,7 +239,7 @@ void setObjectLimit(int limit) {
         );
         DobbyCodePatch(
             reinterpret_cast<void*>(get_address(object_limit_duplicate)),
-#if GAME_VERSION == GV_1_5 || GAME_VERSION == GV_1_7
+#if GAME_VERSION == GV_1_5 || GAME_VERSION >= GV_1_7
             std::vector<uint8_t>({0xdd}).data(), 1
 #elif GAME_VERSION == GV_1_6
             std::vector<uint8_t>({0xdb}).data(), 1
@@ -333,7 +358,7 @@ void setZoomBypass(bool enable) {
         );
     }
 }
-#else
+#elif GAME_VERSION < GV_1_8
 void setZoomBypass(bool enable) {
     if (enable) {
         DobbyCodePatch(
@@ -355,6 +380,8 @@ void setZoomBypass(bool enable) {
         );
     }
 }
+#else
+void setZoomBypass(bool enable){}
 #endif
 void setEditButton(bool enable) {
     if (enable) {
@@ -742,7 +769,7 @@ void setBlockVerify(bool enable) {
             std::vector<uint8_t>({0x80, 0xf8, 0x59, 0x11}).data(), 2
 #elif GAME_VERSION == GV_1_6
             std::vector<uint8_t>({0x80, 0xf8, 0x5d, 0x11}).data(), 2
-#elif GAME_VERSION == GV_1_7
+#elif GAME_VERSION >= GV_1_7
             std::vector<uint8_t>({0x80, 0xf8, 0x29, 0x11}).data(), 2
 #endif
         );
@@ -768,9 +795,11 @@ CCSprite* getProgressBar(PlayLayer* playLayer) {
 CCSprite* getProgressBar() {
     return getProgressBar(getPlayLayer());
 }
+#if GAME_VERSION < GV_1_8
 CCMenuItemSpriteExtra* getZoomOutButton(EditorUI* uiLayer) {
     return MEMBER_BY_OFFSET(CCMenuItemSpriteExtra*, uiLayer, EditorUI__m_zoomOutButton);
 }
+#endif
 #endif
 #if GAME_VERSION >= GV_1_6
 void setClubstepBypass(bool enable) {
@@ -940,6 +969,9 @@ CCDictionary* getCompletedDict(GameStatsManager* gsman) {
 CCDictionary* getStatsDict(GameStatsManager* gsman) {
     return MEMBER_BY_OFFSET(CCDictionary*, gsman, GameStatsManager__m_statsDict);
 }
+CCDictionary* getSavedLevels(GameLevelManager* glman) {
+    return MEMBER_BY_OFFSET(CCDictionary*, glman, GameLevelManager__m_savedLevels);
+}
 int getPlayerShip(GameManager* gm) {
     return MEMBER_BY_OFFSET(int, gm, GameManager__m_playerShip);
 }
@@ -1062,4 +1094,8 @@ CCPoint getPreviousTouchLocation(CCTouch* touch) {
 #else
     return CCDirector::sharedDirector()->convertToGL(touch->previousLocationInView());
 #endif
+}
+void setShaderProgram(CCNode* self, CCGLProgram* program)
+{
+    MEMBER_BY_OFFSET(CCGLProgram*, self, 0xbc) = program;
 }

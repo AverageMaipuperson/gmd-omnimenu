@@ -158,6 +158,14 @@ public:
     virtual bool isKeypadEnabled();
     virtual void setKeypadEnabled(bool value);
 
+#if GAME_VERSION > GV_1_7
+    virtual bool isKeyboardEnabled();
+    virtual void setKeyboardEnabled(bool value);
+
+    virtual bool isMouseEnabled();
+    virtual void setMouseEnabled(bool value);
+#endif
+
     /** Register keypad events handler */
     void registerScriptKeypadHandler(int nHandler);
     /** Unregister keypad events handler */
@@ -176,6 +184,10 @@ protected:
     bool m_bKeypadEnabled;
     
 private:
+#if GAME_VERSION > GV_1_7
+    uint8_t _padThatFixesRobtopsBullshit[12];
+#endif
+
     // Script touch events handler
     CCTouchScriptHandlerEntry* m_pScriptTouchHandlerEntry;
     CCScriptHandlerEntry* m_pScriptKeypadHandlerEntry;

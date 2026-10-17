@@ -24,7 +24,11 @@ public:
 
     void deactivateParticle();
     void flipMod();
+#if GAME_VERSION < GV_1_8
     void stopRotation();
+#else
+    void stopRotation(bool);
+#endif
     void toggleGhostEffect(GhostType type);
     void touchedObject(GameObject* object);
     void setColor(_ccColor3B const&);

@@ -1,6 +1,7 @@
 #include "../hook.hpp"
 #include "LevelSearchLayer.hpp"
 #include "CCMenuItemToggler.hpp"
+#include "../Utils.hpp"
 
 class MoreSearchLayer : public CCLayerColor {
 public:
@@ -32,29 +33,6 @@ public:
         dispatcher->addTargetedDelegate(this, -128, true);
     }
 
-    int getIntForKey(const char* key, int defaultValue = 0) {
-        auto GLM = GameLevelManager::sharedState();
-        auto dict = getSettingsDict(GLM);
-        
-        auto value = dict->valueForKey(key);
-        if (value) {
-            return value->intValue();
-        }
-        return defaultValue;
-    }
-
-    void setIntForKey(int value, const char* key) {
-        auto GLM = GameLevelManager::sharedState();
-        auto dict = getSettingsDict(GLM);
-        
-        auto strValue = CCString::createWithFormat("%d", value);
-        
-        std::string keyStr;
-        keyStr.assign(key);
-        
-        dict->setObject(strValue, keyStr);
-    }
-
     bool init(::LevelSearchLayer* searchLayer) {
         m_searchLayer = searchLayer;
         m_isValid = true;
@@ -62,7 +40,7 @@ public:
         m_selectedSong = getIntForKey("selected_song_index", 0);
         
         if (m_selectedSong < 0) m_selectedSong = 0;
-        if (m_selectedSong > 35) m_selectedSong = 35;
+        if (m_selectedSong > 31) m_selectedSong = 31;
         if (!CCLayerColor::initWithColor({0, 0, 0, 150})) {
             return false;
         }
@@ -133,6 +111,7 @@ public:
         );
         return true;
     }
+
     void createSongSelector(bool isEnabled) {
         auto winSize = CCDirector::sharedDirector()->getWinSize();
         float yPos = (winSize.height / 2) - 30.f;
@@ -168,6 +147,7 @@ public:
         leftBtn->setVisible(isEnabled);
         rightBtn->setVisible(isEnabled);
     }
+
     void updateSongLabel() {
         if (!m_songLabel) {
             return;
@@ -191,9 +171,10 @@ public:
         
         m_songLabel->setScale(scale);
     }
+
     void selectSong(int songIndex) {
         if (songIndex < 0) songIndex = 0;
-        if (songIndex > 35) songIndex = 35;
+        if (songIndex > 31) songIndex = 31;
         
         m_selectedSong = songIndex;
         
@@ -201,6 +182,7 @@ public:
         
         updateSongLabel();
     }
+
     void createToggleButton(const char* text, SEL_MenuHandler callback, bool toggleState, CCPoint position) {
         auto winSize = CCDirector::sharedDirector()->getWinSize();
         auto toggleOn = CCSprite::createWithSpriteFrameName("GJ_checkOn_001.png");
@@ -222,16 +204,19 @@ public:
         label->setScale(0.4f);
         m_mainLayer->addChild(label);
     }
+
     void onUncompleted(CCObject* sender) {
         auto GLM = GameLevelManager::sharedState();
         bool currentState = GLM->getBoolForKey("uncompleted_filter");
         GLM->setBoolForKey(!currentState, "uncompleted_filter");
     }
+
     void onCompleted(CCObject* sender) {
         auto GLM = GameLevelManager::sharedState();
         bool currentState = GLM->getBoolForKey("completed_filter");
         GLM->setBoolForKey(!currentState, "completed_filter");
     }
+
     void onSongFilter(CCObject* sender) {
         auto GLM = GameLevelManager::sharedState();
         bool currentState = GLM->getBoolForKey("song_filter");
@@ -268,21 +253,25 @@ public:
         bool currentState = GLM->getBoolForKey("nostar_filter");
         GLM->setBoolForKey(!currentState, "nostar_filter");
     }
+
     void onSongPrevious(CCObject* sender) {
         if (m_selectedSong > 0) {
             selectSong(m_selectedSong - 1);
         }
     }
+
     void onSongNext(CCObject* sender) {
-        if (m_selectedSong < 35) {
+        if (m_selectedSong < 31) {
             selectSong(m_selectedSong + 1);
         }
     }
+
     void onClose(CCObject* sender) {
         m_isValid = false;
         m_searchLayer = nullptr;
         this->removeFromParentAndCleanup(true);
     }
+
     void show() {
         auto scene = CCDirector::sharedDirector()->getRunningScene();
         if (scene) {
@@ -290,6 +279,7 @@ public:
         } else {
         }
     }
+
     virtual void keyBackClicked() {
         onClose(nullptr);
     }
@@ -302,7 +292,6 @@ public:
         auto moreSearchLayer = MoreSearchLayer::create(searchLayer);
         if (moreSearchLayer) {
             moreSearchLayer->show();
-        } else {
         }
     }
 };

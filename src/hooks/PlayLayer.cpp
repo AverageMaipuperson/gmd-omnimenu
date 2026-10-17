@@ -88,13 +88,16 @@ void checkPortals()
     for (auto object : filtered)
     {
         if (object->getPositionX() > player->getPositionX()) continue;
+        // WELCOME TO MACRO HELL
         switch(getObjectType(object))
         {
             case 5: // ship
-#if GAME_VERSION > GV_1_4
+#if GAME_VERSION > GV_1_4 && GAME_VERSION < GV_1_8
                 layer->switchToFlyMode(object, true, false);
-                #else
+#elif GAME_VERSION < GV_1_4             
                 layer->switchToFlyMode(object, true);
+#else
+                layer->switchToFlyMode(player, object, true, false);
 #endif
                 break;
             case 6: // cube
@@ -109,12 +112,21 @@ void checkPortals()
 #else
                 layer->exitFlyMode();
 #endif
+#if GAME_VERSION < GV_1_8
                 layer->exitRollMode();
+#else
+                layer->exitRollMode(player);
+#endif
 #endif
                 break;
 #if GAME_VERSION > GV_1_0
             case 17: // ball
+#if GAME_VERSION < GV_1_8
                 layer->switchToRollMode(object, true);
+#else
+                layer->switchToRollMode(player, object, true);
+#endif
+            
                 break;
 #endif
 #if GAME_VERSION > GV_1_3
@@ -127,7 +139,11 @@ void checkPortals()
 #endif
 #if GAME_VERSION > GV_1_4
             case 20: // ufo
+#if GAME_VERSION < GV_1_8
                 layer->switchToFlyMode(object, false, true);
+#else
+                layer->switchToFlyMode(player, object, false, true);
+#endif
                 break;
 #endif
 #if GAME_VERSION > GV_1_6
@@ -353,7 +369,11 @@ void PlayLayer::resetLevelLogic(PlayLayer* self) {
                 if (hax.hitboxLayer) {
                     hax.hitboxLayer->setScaleX(getCheckpointFlipped(lastCheckpoint) ? -1 : 1);    
                 }
+#if GAME_VERSION < GV_1_8
                 CCPoint lastCheckpointPos = getCheckpointPosition(lastCheckpoint);
+#else
+                CCPoint lastCheckpointPos = getCheckpointPosition01(lastCheckpoint);
+#endif
     #if GAME_VERSION < GV_1_7
                 seekTime = lastCheckpointPos.x / 311.58f;
     #else

@@ -411,7 +411,9 @@ void LevelEditorLayer_om() {
     Omni::hook("_ZN16LevelEditorLayer4initEP11GJGameLevel",
         reinterpret_cast<void*>(LevelEditorLayer_init),
         reinterpret_cast<void**>(&TRAM_LevelEditorLayer_init));
+#if GAME_VERSION < GV_1_8
     Omni::hook("_ZN16LevelEditorLayer22createObjectsFromSetupESs",
         reinterpret_cast<void*>(LevelEditorLayer_createObjectsFromSetup),
         reinterpret_cast<void**>(&TRAM_LevelEditorLayer_createObjectsFromSetup));
+#endif
 }

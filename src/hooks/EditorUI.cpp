@@ -11,7 +11,6 @@
 #include "LevelTools.hpp"
 #include <math.h>
 
-#if GAME_VERSION < GV_1_8
 CCSprite* filterSpr;
 ButtonSprite* filterBtnSpr;
 
@@ -23,6 +22,8 @@ static CCMenuItemSpriteExtra* g_stopBtn = nullptr;
 static float g_speedMult = 0.9f;
 static CCMenuItemSpriteExtra* g_deleteSelected = nullptr;
 static CCSprite* g_dsSpr = nullptr;
+
+#if GAME_VERSION < GV_1_8
 
 void EditorUI::onPlay(CCObject*) {
 #if GAME_VERSION > GV_1_6
@@ -423,7 +424,7 @@ bool EditorUI_init(EditorUI* self, LevelEditorLayer* lel) {
     HaxManager& hax = HaxManager::sharedState();
     auto director = CCDirector::sharedDirector();
     auto winSize = director->getWinSize();
-#if GAME_VERSION >= GV_1_5
+#if GAME_VERSION >= GV_1_5 && GAME_VERSION < GV_1_8
     getZoomOutButton(self)->setTarget(self, menu_selector(EditorUI::zoomOutExtra));
 #endif
     hax.inEditor = true;
@@ -1468,6 +1469,8 @@ void EditorUI_onDeleteStartPos(EditorUI* self) {
     updateObjectInfoLabel(self);
 }
 #endif
+
+// void (*EditorUI_toggleSpecialButtons)
 
 void EditorUI_om() {
     Omni::hook("_ZN8EditorUI12showMaxErrorEv",

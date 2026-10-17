@@ -3,6 +3,7 @@
 #include <cocos2d.h>
 #include "HaxMenu.hpp"
 #include "VersionUtils.hpp"
+#include "AppDelegate.hpp"
 
 using namespace cocos2d;
 
@@ -18,8 +19,9 @@ HaxButton* HaxButton::create() {
 
 void HaxButton::onOpenMenu(CCObject*) {
     auto haxOverlay = HaxMenu::create(this); //HaxOverlay::create(this);
+    haxOverlay->setOpacity(105);
 #if GAME_VERSION > GV_1_6
-    MEMBER_BY_OFFSET(CCScene*, CCDirector::sharedDirector(), 0x98)->addChild(haxOverlay, 10);
+    AppDelegate::get()->getScenePointer()->addChild(haxOverlay, 10);
 #else
     CCDirector::sharedDirector()->getRunningScene()->addChild(haxOverlay, 10);
 #endif

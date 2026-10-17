@@ -18,7 +18,7 @@ class GameManager : public GManager {
 public:
     static GameManager* sharedState();
 
-    void reportAchievementWithID(const char* ach, int percent);
+    void reportAchievementWithID(const char* ach, int percent, bool popup);
     void setPlayerName(std::string);
     void setPlayerFrame(int);
 #if GAME_VERSION >= GV_1_4
@@ -26,6 +26,9 @@ public:
 #endif
     void setPlayerColor(int);
     void setPlayerColor2(int);
+    void setClickedGarage(bool);
+    void setClickedEditor(bool);
+    void setClickedName(bool);
     void returnToLastScene(GJGameLevel*);
 
     // IDA returns poop addresses

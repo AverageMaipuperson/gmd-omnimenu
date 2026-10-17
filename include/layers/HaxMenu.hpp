@@ -107,10 +107,15 @@ protected:
     void redrawBranches();
     void moveDown(Module& pivot, bool down);
     void setNoclipTintColor(_ccColor3B color);
+    void onRestore();
     CCTextInputNode* createTheInput(Module&, CCPoint);
     
     virtual ColorPickerPopup* colorPickerClosed(ColorPickerPopup*);
     virtual void FLAlert_Clicked(FLAlertLayer*, bool);
+
+#ifdef COCOS_2_2_3
+    CC_RGBA_PROTOCOL_VTABLE
+#endif
 
     CCNode* leftParent;
     CCNode* rightParent;
@@ -120,10 +125,13 @@ protected:
     CCMenu* modMenu;
     CCMenuItemSpriteExtra* udidBtn;
     CCMenuItemSpriteExtra* crashBtn;
+    CCMenuItemSpriteExtra* restoreBtn;
     CCSprite* leftPanel;
     CCSprite* rightPanel;
     bool canSpoofPih;
     std::map<ModuleSubcategory, Branch*> branches;
     std::map<ModuleSubcategory, float> yPos;
     ColorPickerPopup* popup;
+
+    friend class HaxButton;
 };

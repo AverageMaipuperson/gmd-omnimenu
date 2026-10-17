@@ -11,6 +11,8 @@
 #include <algorithm>
 #include "MyLevelsLayer.hpp"
 #include "SavedLevelsLayer.hpp"
+#include "CustomAlertLayer.hpp"
+#include "AppDelegate.hpp"
 
 static std::string g_searchFilter = "";
 static CCArray* g_filterArr = nullptr;
@@ -23,14 +25,11 @@ CCArray* (*LocalLevelManager_getLocalLevels)(LocalLevelManager*);
 CCArray* (*GameLevelManager_getLocalLevels)(GameLevelManager*);
 #endif
 
-#if GAME_VERSION > GV_1_3
-
-class SearchLayer : public CCLayerColor, public TextInputDelegate 
+class SearchLayer : public CustomAlertLayer, public TextInputDelegate
 {
 public:
     LevelBrowserLayer* m_levelBrowserLayer;
     CCTextInputNode* m_input;
-    CCLayer* m_mainLayer;
     CCMenu* m_buttonMenu;
     
     static SearchLayer* create(LevelBrowserLayer* lbl)
@@ -44,69 +43,46 @@ public:
         return nullptr;
     }
 
-    void setupTouchPriority() {
-        auto dispatcher = CCDirector::sharedDirector()->getTouchDispatcher();
-        
-        dispatcher->removeDelegate(this);
-        dispatcher->removeDelegate(m_buttonMenu);
-        dispatcher->removeDelegate(m_input);
-
-        m_input->setTouchEnabled(true);
-        dispatcher->addTargetedDelegate(m_input, -130, true);
-        
-        m_buttonMenu->setTouchEnabled(true);
-        dispatcher->addTargetedDelegate(m_buttonMenu, -129, true);
-        
-        dispatcher->addTargetedDelegate(this, -128, true);
-    }
-
     bool init(LevelBrowserLayer* lbl)
     {
         m_levelBrowserLayer = lbl;
-        CCLayerColor::initWithColor({0, 0, 0, 105});
-/*
-#if GAME_VERSION > GV_1_6
-        auto shader = CCShaderCache::sharedShaderCache()->programForKey(kCCShader_PositionColor);
-        if (shader)
-            this->setShaderProgram(shader);
-        else 
-            this->setShaderProgram(CCShaderCache::sharedShaderCache()->programForKey(kCCShader_Position_uColor));
-#endif
-*/
+        CustomAlertLayer::init();
 
         auto winSize = CCDirector::sharedDirector()->getWinSize();
-        this->setKeypadEnabled(true);
-        this->setTouchEnabled(true);
 
         m_mainLayer = CCLayer::create();
-        this->addChild(m_mainLayer);
+
+        auto background = CCSprite::create("square02_001.png");
+        background->setScale(100);
+        background->setOpacity(105);
+        m_mainLayer->addChild(background, 10000);
 
         auto bg = extension::CCScale9Sprite::create("GJ_square01.png", {0, 0, 80, 80});
         bg->setContentSize(CCSize(280, 160));
         bg->setPosition(ccp(winSize.width / 2, winSize.height / 2));
-        m_mainLayer->addChild(bg);
+        m_mainLayer->addChild(bg, 10001);
 
         auto title = CCLabelBMFont::create("Find Level", "goldFont.fnt");
         title->setPosition(ccp(winSize.width / 2, winSize.height / 2 + 55.f));
         title->setScale(0.8f);
-        m_mainLayer->addChild(title);
+        m_mainLayer->addChild(title, 10002);
 
         auto inputBg = extension::CCScale9Sprite::create("square02b_001.png", {0, 0, 80, 80});
         inputBg->setContentSize({200.f, 40.f});
         inputBg->setColor({123,60,31});
         inputBg->setPosition({winSize.width / 2, winSize.height / 2 + 10.f});
-        m_mainLayer->addChild(inputBg);
+        m_mainLayer->addChild(inputBg, 10001);
 
         m_input = CCTextInputNode::create(180.f, 30.f, "Search", "Thonburi", 24, "bigFont.fnt");
         m_input->setLabelPlaceholderColor({0x75, 0xAA, 0xF0});
         m_input->setAllowedChars("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890 ");
         m_input->setDelegate(this);
         m_input->setPosition(ccp(winSize.width / 2, winSize.height / 2 + 10));
-        m_mainLayer->addChild(m_input);
+        m_mainLayer->addChild(m_input, 10002);
 
         m_buttonMenu = CCMenu::create();
-        m_buttonMenu->setPosition(CCPointZero /* ccp(0,0) */);
-        m_mainLayer->addChild(m_buttonMenu);
+        m_buttonMenu->setPosition(CCPointZero);
+        m_mainLayer->addChild(m_buttonMenu, 10002);
 
         auto closeSpr = CCSprite::createWithSpriteFrameName("GJ_closeBtn_001.png");
         auto closeBtn = CCMenuItemSpriteExtra::create(
@@ -128,16 +104,11 @@ public:
         goBtn->setPosition(ccp(winSize.width / 2, winSize.height / 2 - 45));
         m_buttonMenu->addChild(goBtn);
 
-        setupTouchPriority();
         return true;
     }
 
-    void onClose(CCObject*)
-    {
-        this->removeFromParentAndCleanup(true);
-    }
-
-    void onSearch(CCObject*)
+#if GAME_VERSION > GV_1_3
+    virtual void onSearch(CCObject*)
     {
         std::string inputStr = "";
 
@@ -189,40 +160,17 @@ public:
         this->m_levelBrowserLayer->setupLevelBrowser(newArr->count() == 0 ? arr : newArr);
         this->m_levelBrowserLayer->loadPage(obj);
         this->m_levelBrowserLayer->updateLevelsLabel();
-        onClose(nullptr);
+        onClose();
     }
-
-    void show()
-    {
-#if GAME_VERSION < GV_1_7
-        auto scene = CCDirector::sharedDirector()->getRunningScene();
-#else
-        auto scene = MEMBER_BY_OFFSET(CCScene*, CCDirector::sharedDirector(), 0x98);
+#else 
+    virtual void onSearch(CCObject*){}
 #endif
-        if (scene) scene->addChild(this, 999);
-    }
-
-    virtual void registerWithTouchDispatcher() override {}
-    virtual bool ccTouchBegan(CCTouch* touch, CCEvent* event) override {
-        return true;
-    }
-    virtual void ccTouchMoved(CCTouch* touch, CCEvent* event) override {}
-    virtual void ccTouchEnded(CCTouch* touch, CCEvent* event) override {}
-    virtual void ccTouchCancelled(CCTouch* touch, CCEvent* event) override {}
-    virtual void keyBackClicked() override {
-        onClose(nullptr);
-    }
 };
 
-#else
-
-class MLLSearchLayer : public CCLayerColor, public TextInputDelegate 
+class MLLSearchLayer : public SearchLayer
 {
 public:
     MyLevelsLayer* m_myLevelsLayer;
-    CCTextInputNode* m_input;
-    CCLayer* m_mainLayer;
-    CCMenu* m_buttonMenu;
     
     static MLLSearchLayer* create(MyLevelsLayer* lbl)
     {
@@ -235,91 +183,13 @@ public:
         return nullptr;
     }
 
-    void setupTouchPriority() {
-        auto dispatcher = CCDirector::sharedDirector()->getTouchDispatcher();
-        
-        dispatcher->removeDelegate(this);
-        dispatcher->removeDelegate(m_buttonMenu);
-        dispatcher->removeDelegate(m_input);
-
-        m_input->setTouchEnabled(true);
-        dispatcher->addTargetedDelegate(m_input, -130, true);
-        
-        m_buttonMenu->setTouchEnabled(true);
-        dispatcher->addTargetedDelegate(m_buttonMenu, -129, true);
-        
-        dispatcher->addTargetedDelegate(this, -128, true);
-    }
-
     bool init(MyLevelsLayer* lbl)
     {
         m_myLevelsLayer = lbl;
-        CCLayerColor::initWithColor({0, 0, 0, 105});
-
-        auto winSize = CCDirector::sharedDirector()->getWinSize();
-        this->setKeypadEnabled(true);
-        this->setTouchEnabled(true);
-
-        m_mainLayer = CCLayer::create();
-        this->addChild(m_mainLayer);
-
-        auto bg = extension::CCScale9Sprite::create("GJ_square01.png", {0, 0, 80, 80});
-        bg->setContentSize(CCSize(280, 160));
-        bg->setPosition(ccp(winSize.width / 2, winSize.height / 2));
-        m_mainLayer->addChild(bg);
-
-        auto title = CCLabelBMFont::create("Find Level", "goldFont.fnt");
-        title->setPosition(ccp(winSize.width / 2, winSize.height / 2 + 55.f));
-        title->setScale(0.8f);
-        m_mainLayer->addChild(title);
-
-        auto inputBg = extension::CCScale9Sprite::create("square02b_001.png", {0, 0, 80, 80});
-        inputBg->setContentSize({200.f, 40.f});
-        inputBg->setColor({123,60,31});
-        inputBg->setPosition({winSize.width / 2, winSize.height / 2 + 10.f});
-        m_mainLayer->addChild(inputBg);
-
-        m_input = CCTextInputNode::create(180.f, 30.f, "Search", "Thonburi", 24, "bigFont.fnt");
-        m_input->setLabelPlaceholderColor({0x75, 0xAA, 0xF0});
-        m_input->setAllowedChars("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890 ");
-        m_input->setDelegate(this);
-        m_input->setPosition(ccp(winSize.width / 2, winSize.height / 2 + 10));
-        m_mainLayer->addChild(m_input);
-
-        m_buttonMenu = CCMenu::create();
-        m_buttonMenu->setPosition(CCPointZero /* ccp(0,0) */);
-        m_mainLayer->addChild(m_buttonMenu);
-
-        auto closeSpr = CCSprite::createWithSpriteFrameName("GJ_closeBtn_001.png");
-        auto closeBtn = CCMenuItemSpriteExtra::create(
-            closeSpr,
-            closeSpr,
-            this,
-            menu_selector(MLLSearchLayer::onClose)
-        );
-        closeBtn->setPosition(ccp(winSize.width / 2 - 130, winSize.height / 2 + 70));
-        m_buttonMenu->addChild(closeBtn);
-
-        auto goSpr = ButtonSprite::create("Search", 60, 0, 0.6f, true, "goldFont.fnt", "GJ_button_01.png");
-        auto goBtn = CCMenuItemSpriteExtra::create(
-            goSpr,
-            goSpr,
-            this,
-            menu_selector(MLLSearchLayer::onSearch)
-        );
-        goBtn->setPosition(ccp(winSize.width / 2, winSize.height / 2 - 45));
-        m_buttonMenu->addChild(goBtn);
-
-        setupTouchPriority();
-        return true;
+        return SearchLayer::init(nullptr);
     }
 
-    void onClose(CCObject*)
-    {
-        this->removeFromParentAndCleanup(true);
-    }
-
-    void onSearch(CCObject*)
+    virtual void onSearch(CCObject*) override
     {
         std::string inputStr = "";
 
@@ -375,35 +245,14 @@ public:
         }
 
         this->m_myLevelsLayer->setupLevelBrowser();
-        onClose(nullptr);
+        onClose();
     }
-
-    void show()
-    {
-        auto scene = CCDirector::sharedDirector()->getRunningScene();
-        if (scene) scene->addChild(this, 999);
-    }
-
-    virtual void registerWithTouchDispatcher() override {}
-    virtual bool ccTouchBegan(CCTouch* touch, CCEvent* event) override {
-        return true;
-    }
-    virtual void ccTouchMoved(CCTouch* touch, CCEvent* event) override {}
-    virtual void ccTouchEnded(CCTouch* touch, CCEvent* event) override {}
-    virtual void ccTouchCancelled(CCTouch* touch, CCEvent* event) override {}
-    virtual void keyBackClicked() override {
-        onClose(nullptr);
-    }
-
 };
 
-class SLLSearchLayer : public CCLayerColor, public TextInputDelegate 
+class SLLSearchLayer : public SearchLayer
 {
 public:
     SavedLevelsLayer* m_myLevelsLayer;
-    CCTextInputNode* m_input;
-    CCLayer* m_mainLayer;
-    CCMenu* m_buttonMenu;
     
     static SLLSearchLayer* create(SavedLevelsLayer* lbl)
     {
@@ -416,91 +265,13 @@ public:
         return nullptr;
     }
 
-    void setupTouchPriority() {
-        auto dispatcher = CCDirector::sharedDirector()->getTouchDispatcher();
-        
-        dispatcher->removeDelegate(this);
-        dispatcher->removeDelegate(m_buttonMenu);
-        dispatcher->removeDelegate(m_input);
-
-        m_input->setTouchEnabled(true);
-        dispatcher->addTargetedDelegate(m_input, -130, true);
-        
-        m_buttonMenu->setTouchEnabled(true);
-        dispatcher->addTargetedDelegate(m_buttonMenu, -129, true);
-        
-        dispatcher->addTargetedDelegate(this, -128, true);
-    }
-
     bool init(SavedLevelsLayer* lbl)
     {
         m_myLevelsLayer = lbl;
-        CCLayerColor::initWithColor({0, 0, 0, 105});
-
-        auto winSize = CCDirector::sharedDirector()->getWinSize();
-        this->setKeypadEnabled(true);
-        this->setTouchEnabled(true);
-
-        m_mainLayer = CCLayer::create();
-        this->addChild(m_mainLayer);
-
-        auto bg = extension::CCScale9Sprite::create("GJ_square01.png", {0, 0, 80, 80});
-        bg->setContentSize(CCSize(280, 160));
-        bg->setPosition(ccp(winSize.width / 2, winSize.height / 2));
-        m_mainLayer->addChild(bg);
-
-        auto title = CCLabelBMFont::create("Find Level", "goldFont.fnt");
-        title->setPosition(ccp(winSize.width / 2, winSize.height / 2 + 55.f));
-        title->setScale(0.8f);
-        m_mainLayer->addChild(title);
-
-        auto inputBg = extension::CCScale9Sprite::create("square02b_001.png", {0, 0, 80, 80});
-        inputBg->setContentSize({200.f, 40.f});
-        inputBg->setColor({123,60,31});
-        inputBg->setPosition({winSize.width / 2, winSize.height / 2 + 10.f});
-        m_mainLayer->addChild(inputBg);
-
-        m_input = CCTextInputNode::create(180.f, 30.f, "Search", "Thonburi", 24, "bigFont.fnt");
-        m_input->setLabelPlaceholderColor({0x75, 0xAA, 0xF0});
-        m_input->setAllowedChars("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890 ");
-        m_input->setDelegate(this);
-        m_input->setPosition(ccp(winSize.width / 2, winSize.height / 2 + 10));
-        m_mainLayer->addChild(m_input);
-
-        m_buttonMenu = CCMenu::create();
-        m_buttonMenu->setPosition(CCPointZero /* ccp(0,0) */);
-        m_mainLayer->addChild(m_buttonMenu);
-
-        auto closeSpr = CCSprite::createWithSpriteFrameName("GJ_closeBtn_001.png");
-        auto closeBtn = CCMenuItemSpriteExtra::create(
-            closeSpr,
-            closeSpr,
-            this,
-            menu_selector(SLLSearchLayer::onClose)
-        );
-        closeBtn->setPosition(ccp(winSize.width / 2 - 130, winSize.height / 2 + 70));
-        m_buttonMenu->addChild(closeBtn);
-
-        auto goSpr = ButtonSprite::create("Search", 60, 0, 0.6f, true, "goldFont.fnt", "GJ_button_01.png");
-        auto goBtn = CCMenuItemSpriteExtra::create(
-            goSpr,
-            goSpr,
-            this,
-            menu_selector(SLLSearchLayer::onSearch)
-        );
-        goBtn->setPosition(ccp(winSize.width / 2, winSize.height / 2 - 45));
-        m_buttonMenu->addChild(goBtn);
-
-        setupTouchPriority();
-        return true;
+        return SearchLayer::init(nullptr);
     }
 
-    void onClose(CCObject*)
-    {
-        this->removeFromParentAndCleanup(true);
-    }
-
-    void onSearch(CCObject*)
+    virtual void onSearch(CCObject*) override
     {
         std::string inputStr = "";
 
@@ -552,25 +323,6 @@ public:
         }
 
         this->m_myLevelsLayer->setupLevelBrowser();
-        onClose(nullptr);
+        onClose();
     }
-
-    void show()
-    {
-        auto scene = CCDirector::sharedDirector()->getRunningScene();
-        if (scene) scene->addChild(this, 999);
-    }
-
-    virtual void registerWithTouchDispatcher() override {}
-    virtual bool ccTouchBegan(CCTouch* touch, CCEvent* event) override {
-        return true;
-    }
-    virtual void ccTouchMoved(CCTouch* touch, CCEvent* event) override {}
-    virtual void ccTouchEnded(CCTouch* touch, CCEvent* event) override {}
-    virtual void ccTouchCancelled(CCTouch* touch, CCEvent* event) override {}
-    virtual void keyBackClicked() override {
-        onClose(nullptr);
-    }
-
 };
-#endif

@@ -66,6 +66,21 @@ void EditLevelLayer::onExport() {
     jobject activity = env->CallStaticObjectMethod(activityClass, getActivity);
     env->CallVoidMethod(activity, showPicker, jname);
 }
+
+void (*TRAM_EditLevelLayer_onShare)(EditLevelLayer* self);
+void EditLevelLayer_onShare(EditLevelLayer* self) {
+    HaxManager& hax = HaxManager::sharedState();
+    auto level = getEditLayerLevel(self);
+    if (hax.getModuleEnabled(ModuleID::VERIFY_BYPASS) && !level->m_bIsVerified) {
+        level->m_bIsVerified = true;
+        TRAM_EditLevelLayer_onShare(self);
+        level->m_bIsVerified = false;
+    }
+    else{
+        TRAM_EditLevelLayer_onShare(self);
+    }
+}
+
 bool (*TRAM_EditLevelLayer_init)(EditLevelLayer* self, GJGameLevel* level);
 bool EditLevelLayer_init(EditLevelLayer* self, GJGameLevel* level) {
     if (!TRAM_EditLevelLayer_init(self, level)) return false;
@@ -102,11 +117,6 @@ bool EditLevelLayer_init(EditLevelLayer* self, GJGameLevel* level) {
         }
     }
 #endif
-#ifndef FORCE_AUTO_SAFE_MODE
-    if (hax.getModuleEnabled(ModuleID::VERIFY_BYPASS)) {
-        level->m_bIsVerified = true;
-    }
-#endif
     if (hax.getModuleEnabled(ModuleID::VIEW_LEVEL_STATS)) {
         CCMenu* infoMenu = CCMenu::create();
         CCSprite* infoSpr = createInfoSprite();
@@ -140,4 +150,7 @@ void EditLevelLayer_om() {
     Omni::hook("_ZN14EditLevelLayer4initEP11GJGameLevel",
         reinterpret_cast<void*>(EditLevelLayer_init),
         reinterpret_cast<void**>(&TRAM_EditLevelLayer_init));
+    Omni::hook("_ZN14EditLevelLayer7onShareEv",
+        reinterpret_cast<void*>(EditLevelLayer_onShare),
+        reinterpret_cast<void**>(&TRAM_EditLevelLayer_onShare));
 }

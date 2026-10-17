@@ -5,4 +5,5 @@ class AppDelegate : public cocos2d::CCApplicationProtocol {
 public:
     static AppDelegate* get();
     void trySaveGame();
+    cocos2d::CCNode* getScenePointer() const;
 };

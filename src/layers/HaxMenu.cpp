@@ -19,6 +19,9 @@
 #include <fstream>
 #include "LoadingLayer.hpp"
 #include "HaxButton.hpp"
+#if GDPS == GDPS_NEOPOINTFOUR
+#include "hooks/Neopointfour/RestoreData.cpp"
+#endif
 
 using namespace cocos2d;
 
@@ -123,6 +126,72 @@ ccColor3B color = ccc3(127, 255, 255);
 //     return false;
 // }
 
+#if GDPS == GDPS_NEOPOINTFOUR
+static size_t WriteCallback(void* contents, size_t size, size_t nmemb, void* userp) {
+    ((std::string*)userp)->append((char*)contents, size * nmemb);
+    return size * nmemb;
+}
+
+void HaxMenu::onRestore() {
+    std::string udid = getPlayerUDID();
+
+    void* handle = dlopen("libgame.so", RTLD_LAZY);
+
+    typedef void* (*curl_init_t)();
+    typedef int (*curl_setopt_t)(void*, int, ...);
+    typedef int (*curl_perform_t)(void*);
+    typedef void (*curl_cleanup_t)(void*);
+
+    auto curl_init = (curl_init_t)dlsym(handle, "curl_easy_init");
+    auto curl_setopt  = (curl_setopt_t)dlsym(handle, "curl_easy_setopt");
+    auto curl_perform = (curl_perform_t)dlsym(handle, "curl_easy_perform");
+    auto curl_cleanup = (curl_cleanup_t)dlsym(handle, "curl_easy_cleanup");
+
+    if (!curl_init || !curl_setopt || !curl_perform || !curl_cleanup) {
+        return;
+    }
+
+    void* curl = curl_init();
+    if (!curl) {
+        return;
+    }
+
+    std::string responseString;
+    std::string postData = "udid=" + udid;
+
+    // CURLOPT_URL
+    curl_setopt(curl, 10002, "http://neopointfour.host/database/restoreGJItems.php");
+    // CURLOPT_POSTFIELDS
+    curl_setopt(curl, 10015, postData.c_str());
+    // CURLOPT_WRITEFUNCTION
+    curl_setopt(curl, 20011, WriteCallback);
+    // CURLOPT_WRITEDATA
+    curl_setopt(curl, 10001, &responseString);
+    // CURLOPT_SSL_VERIFYPEER
+    curl_setopt(curl, 64, 0L);
+    // CURLOPT_TIMEOUT
+    curl_setopt(curl, 13, 10L);
+
+    int res = curl_perform(curl);
+    curl_cleanup(curl);
+    dlclose(handle);
+
+    if (res != 0 || responseString == "-1" || responseString.empty()) {
+        FLAlertLayer::create(nullptr, "Restore Menu", "No backups found for your account.", "OK", nullptr, 250.f)->show();
+        return;
+    }
+
+    RestoreData backup = parseRestoreResponse(responseString);
+
+    auto* handler = new RestoreHandler();
+    handler->backupData = backup;
+    handler->retain();
+
+    std::string msg = CCString::createWithFormat("Backup found!\n<cg>Username</c>: %s\n<cy>Stars</c>: %d\n<cr>Last Updated</c>: %s\nDo you want to <cg>restore</c>?\n<cy>This will merge current data with the backup.</c>", backup.userName.c_str(), backup.stars, timeToString(static_cast<time_t>(backup.lastUpdated)).c_str())->getCString();
+
+    FLAlertLayer::create(handler, "Restore Backup", msg.c_str(), "No", "Yes", 300.f)->show();
+}
+#endif
 
 bool HaxMenu::init(CCLayer* referrer) {
     if (!CCLayerColor::initWithColor(ccc4(0, 0, 0, 180)))
@@ -939,6 +1008,14 @@ void HaxMenu::onCategory(ModuleCategory category) {
 
         auto spr = ButtonSprite::create("Crash Game", 50, 0, 1, false, "bigFont.fnt", "GJ_button_04.png");
 
+#if GDPS == GDPS_NEOPOINTFOUR
+            auto restoreSpr = ButtonSprite::create("Restore", 50, 0, 1, false, "bigFont.fnt", "GJ_button_04.png");
+
+            auto restoreBtn = CCMenuItemSpriteExtra::create(restoreSpr, restoreSpr, this, menu_selector(HaxMenu::onRestore));
+            restoreBtn->setPosition(ccp(10, -winSize.height / 2 + 30));
+            this->modMenu->addChild(restoreBtn);
+            this->restoreBtn = restoreBtn;
+#else
         auto btn = (CCMenuItemSpriteExtra*)CCMenuItemExt::createWithSpriteExtra(
             spr,
             [this](CCObject*)
@@ -957,14 +1034,6 @@ void HaxMenu::onCategory(ModuleCategory category) {
         btn->setPosition(ccp(10, -winSize.height / 2 + 30));
         this->modMenu->addChild(btn);
         this->crashBtn = btn;
-        
-#if GDPS == GDPS_NEOPOINTFOUR
-        /*auto restoreSpr = ButtonSprite::create("Restore", 50, 0, 1, false, "bigFont.fnt", "GJ_button_04.png");
-
-        auto restoreBtn = CCMenuItemSpriteExtra::create(restoreSpr, restoreSpr, this, menu_selector(HaxMenu::onRestore));
-        restoreBtn->setPosition(ccp(10, -winSize.height / 2 + 30));
-        this->modMenu->addChild(restoreBtn);
-        this->restoreBtn = restoreBtn;*/
 #endif
     }
     // CCLog("abcasdfasdadsfdas");

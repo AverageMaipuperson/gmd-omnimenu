@@ -34,7 +34,6 @@
 /**/ #define EditorUI__m_selectedObjects       0x138 /**/ // EditorUI::deselectAll 
 /**/ #define EditorUI__m_touch                 0x1b0 /**/ // EditorUI::onDelete
 /**/ #define EditorUI__m_unkFloat              0x128 /**/ // EditorUI::setupCreateMenu
-
 /**/ #define EditorUI__m_zoomOutButton         0x158 /**/ // EditorUI::init
 
 /**/ #define GameManager__m_autoRetry          0x16c /**/ // GameManager::getAutoRetryLevel
