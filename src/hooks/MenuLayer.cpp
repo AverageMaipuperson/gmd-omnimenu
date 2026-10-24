@@ -10,6 +10,7 @@
 #include "../bananagdps/banana.hpp"
 #include "GameSoundManager.hpp"
 #include "AchievementManager.hpp"
+#include "GameObject.hpp"
 #if GAME_VERSION >= GV_1_5
 #include "AppDelegate.hpp"
 #endif
@@ -71,6 +72,10 @@ void MenuLayer::onOpenMenu(SEL_MenuHandler_1_7_compat) {
     auto haxOverlay = HaxMenu::create(this); //HaxOverlay::create(this);
     this->addChild(haxOverlay, 1000);
     this->setTouchEnabled(false);
+
+    auto obj = GameObject::create("GJ_playBtn_001.png");
+    obj->setColor(ccc3(255,0,0));
+    this->addChild(obj);
 }
 void MenuLayer::onMenuInfo(SEL_MenuHandler_1_7_compat) {
     FLAlertLayer::create(

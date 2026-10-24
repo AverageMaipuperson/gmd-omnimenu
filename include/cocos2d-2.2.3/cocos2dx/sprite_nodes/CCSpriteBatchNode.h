@@ -154,6 +154,11 @@ public:
     virtual void sortAllChildren();
     virtual void draw(void);
 
+#if GAME_VERSION == GV_1_8
+    virtual bool getManualSortChildren() const;
+    virtual void setManualSortChildren(bool);
+#endif
+
 protected:
     /** Inserts a quad at a certain index into the texture atlas. The CCSprite won't be added into the children array.
      This method should be called only when you are dealing with very big AtlasSrite and when most of the CCSprite won't be updated.

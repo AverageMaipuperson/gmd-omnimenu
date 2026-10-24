@@ -37,6 +37,7 @@
 #include "kazmath/kazmath.h"
 #include "script_support/CCScriptSupport.h"
 #include "CCProtocols.h"
+#include "constants.hpp"
 
 NS_CC_BEGIN
 
@@ -668,7 +669,7 @@ public:
     virtual void removeFromParentAndCleanup(bool cleanup);
 
     //Robtop Modification
-#if GAME_VERSION > GV_1_7
+#if GAME_VERSION == GV_1_8
     virtual void removeMeAndCleanup();
 #endif
     /** 

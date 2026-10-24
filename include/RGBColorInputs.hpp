@@ -25,6 +25,8 @@ public:
     bool colorPicker;
     ColorSelectPopup* csp;
     bool editingFT;
+    CCLabelBMFont* hexLabel;
+    cocos2d::extension::CCScale9Sprite* hexBG;
 
     void initColor(_ccColor3B color) {
         if (hasInitializedColor) return;

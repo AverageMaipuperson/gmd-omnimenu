@@ -1,5 +1,6 @@
 #include "hook.hpp"
 #include "PlayerObject.hpp"
+#include "CCCircleWave.hpp"
 
 void (*TRAM_PlayerObject_activateStreak)(PlayerObject* self);
 void (*TRAM_PlayerObject_deactivateStreak)(PlayerObject* self);
@@ -36,12 +37,21 @@ void PlayerObject_updateShipRotation(PlayerObject* self) {
     TRAM_PlayerObject_updateShipRotation(self);
 }
 #endif
+#if GAME_VERSION < GV_1_8
 void (*TRAM_PlayerObject_runRotateAction)(PlayerObject* self);
 void PlayerObject_runRotateAction(PlayerObject* self) {
     HaxManager& hax = HaxManager::sharedState();
     if (hax.getModuleEnabled(ModuleID::NO_ROTATION)) return;
     TRAM_PlayerObject_runRotateAction(self);
 }
+#else
+void (*TRAM_PlayerObject_runRotateAction)(PlayerObject* self, bool);
+void PlayerObject_runRotateAction(PlayerObject* self, bool isBall) {
+    HaxManager& hax = HaxManager::sharedState();
+    if (hax.getModuleEnabled(ModuleID::NO_ROTATION)) return;
+    TRAM_PlayerObject_runRotateAction(self, isBall);
+}
+#endif
 void (*TRAM_PlayerObject_runBallRotation2)(PlayerObject* self);
 void PlayerObject_runBallRotation2(PlayerObject* self) {
     HaxManager& hax = HaxManager::sharedState();
@@ -113,6 +123,7 @@ void PlayerObject_playBurstEffect(PlayerObject* self) {
     if (hax.getModuleEnabled(ModuleID::PARTICLE_BURST)) TRAM_PlayerObject_playBurstEffect(self);
 }
 #endif
+
 void (*TRAM_PlayerObject_playerDestroyed)(PlayerObject* self);
 void PlayerObject_playerDestroyed(PlayerObject* self) {
     HaxManager& hax = HaxManager::sharedState();
@@ -135,6 +146,17 @@ void PlayerObject_playerDestroyed(PlayerObject* self) {
         getShipGroundParticles(self)->stopSystem();
         self->toggleGhostEffect(GhostType::None);
 
+        auto gameLayer = self->getGameLayer();
+        auto children = gameLayer->getChildren();
+
+#if GAME_VERSION == GV_1_8
+        for (auto i = 0; i < children->count(); i++)
+        {
+            auto child = children->objectAtIndex(i);
+            if (auto wave = dynamic_cast<CCCircleWave*>(child))
+                wave->removeMeAndCleanup();
+        }
+#endif
     } else TRAM_PlayerObject_playerDestroyed(self);
 }
 void (*TRAM_PlayerObject_levelFlipFinished)(PlayerObject* self);
@@ -247,9 +269,15 @@ void PlayerObject_om() {
         reinterpret_cast<void*>(PlayerObject_updateShipRotation),
         reinterpret_cast<void**>(&TRAM_PlayerObject_updateShipRotation));
 #endif
+#if GAME_VERSION < GV_1_8
     Omni::hook("_ZN12PlayerObject15runRotateActionEv",
         reinterpret_cast<void*>(PlayerObject_runRotateAction),
         reinterpret_cast<void**>(&TRAM_PlayerObject_runRotateAction));
+#else
+    Omni::hook("_ZN12PlayerObject15runRotateActionEb",
+        reinterpret_cast<void*>(PlayerObject_runRotateAction),
+        reinterpret_cast<void**>(&TRAM_PlayerObject_runRotateAction));
+#endif
 #if GAME_VERSION > GV_1_1
     Omni::hook("_ZN12PlayerObject16runBallRotation2Ev",
         reinterpret_cast<void*>(PlayerObject_runBallRotation2),

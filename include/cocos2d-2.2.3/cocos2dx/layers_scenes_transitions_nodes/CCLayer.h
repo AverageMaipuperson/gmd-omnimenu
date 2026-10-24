@@ -33,6 +33,7 @@ THE SOFTWARE.
 #include "platform/CCAccelerometerDelegate.h"
 #include "keypad_dispatcher/CCKeypadDelegate.h"
 #include "cocoa/CCArray.h"
+#include "constants.hpp"
 #ifdef EMSCRIPTEN
 #include "base_nodes/CCGLBufferedNode.h"
 #endif // EMSCRIPTEN
@@ -158,7 +159,7 @@ public:
     virtual bool isKeypadEnabled();
     virtual void setKeypadEnabled(bool value);
 
-#if GAME_VERSION > GV_1_7
+#if GAME_VERSION == GV_1_8
     virtual bool isKeyboardEnabled();
     virtual void setKeyboardEnabled(bool value);
 
@@ -184,7 +185,7 @@ protected:
     bool m_bKeypadEnabled;
     
 private:
-#if GAME_VERSION > GV_1_7
+#if GAME_VERSION == GV_1_8
     uint8_t _padThatFixesRobtopsBullshit[12];
 #endif
 

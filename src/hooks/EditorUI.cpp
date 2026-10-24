@@ -249,7 +249,7 @@ void updateObjectInfoLabel(EditorUI* self) {
         if (hax.editorObjectInfo) hax.editorObjectInfo->setString("");
         return;
     }
-#if GAME_VERSION < GV_1_8
+#if GAME_VERSION > GV_1_7
     if (filterSpr && hax.objectIDFilter == 0) {
         int objectID = self->getSelectedObjectID();
         if (objectID == 0) filterSpr->setVisible(false);
@@ -265,6 +265,7 @@ void updateObjectInfoLabel(EditorUI* self) {
     }
 #endif
     if (!hax.editorObjectInfo) {
+        CCLog("bro");
         return;
     }
     if (getSelectedObjects(self) && getSelectedObjects(self)->count() > 0) {
@@ -484,7 +485,11 @@ bool EditorUI_init(EditorUI* self, LevelEditorLayer* lel) {
     if (hax.getModuleEnabled(ModuleID::SHOW_OBJECT_INFO)) {
         CCLabelBMFont* objInfo = CCLabelBMFont::create("", "chatFont.fnt");
         objInfo->setAnchorPoint({0, 1});
+#if GAME_VERSION < GV_1_8
         objInfo->setPosition(ccp(15, winSize.height - 45));
+#else
+        objInfo->setPosition(ccp(50, winSize.height - 45));
+#endif
         objInfo->setScale(0.7);
         self->addChild(objInfo);
         hax.editorObjectInfo = objInfo;
@@ -627,18 +632,326 @@ void EditorUI::onDeleteStartPos() {
 }
 #endif
 
+#if GAME_VERSION < GV_1_7
+void EditorUI::setupCreateTabs()
+{
+    auto& hax = HaxManager::sharedState();
+    auto director = CCDirector::sharedDirector();
+    auto winSize = director->getWinSize();
+
+    for (auto i = 0 ; i <= TABS ; i++)
+        hax.createTabs.push_back(nullptr);
+
+    std::vector<std::string> vec{
+        "square_01_001.png",
+        #if GAME_VERSION > GV_1_2
+        "plank_01_001.png",
+        #endif
+        "spike_01_001.png",
+        "ring_01_001.png",
+        "d_spikes_01_001.png",
+        #if GAME_VERSION > GV_1_5
+        "chain_01_001.png",
+        #endif
+        #if GAME_VERSION < GV_1_3
+        "rod_03_001.png",
+        #else
+        "d_ball_01_001.png",
+        #endif
+        #if GAME_VERSION > GV_1_3
+        "sawblade_01_001.png",
+        #endif
+        "edit_eTintBGBtn_001.png"
+    };
+
+    hax.categoryMenu = CCMenu::create();
+
+    for (auto i = 1 ; i < vec.size() + 1 ; i++)
+    {
+        auto str = vec[i - 1];
+
+        auto off = CCSprite::create("GJ_tabOff_001.png");
+        auto spr = CCSprite::createWithSpriteFrameName(str.c_str());
+        off->addChild(spr);
+
+        auto scale = std::min(
+            (off->getContentSize().width / spr->getContentSize().width) * 0.6f,
+            (off->getContentSize().height / spr->getContentSize().height) * 0.6f
+        );
+        auto pos = ccp(off->getContentSize().width / 2, off->getContentSize().height / 2);
+
+        spr->setPosition(pos);
+        spr->setScale(scale);
+    
+        
+        auto on = CCSprite::create("GJ_tabOn_001.png");
+        spr = CCSprite::createWithSpriteFrameName(str.c_str());
+        on->addChild(spr);
+        spr->setPosition(pos);
+        spr->setScale(scale);
+
+        auto btn = CCMenuItemToggler::create(
+            off,
+            on,
+            this,
+            menu_selector(EditorUI::onCategory)
+        );
+        btn->setTag(i);
+        hax.categoryMenu->addChild(btn);
+    }
+
+    hax.categoryMenu->setPosition(ccp(winSize.width / 2, winSize.height / 2 - 61));
+    hax.categoryMenu->alignItemsHorizontallyWithPadding(5);
+    this->addChild(hax.categoryMenu);
+
+    static_cast<CCMenuItemToggler*>(hax.categoryMenu->getChildByTag(1))->toggle(true);
+    
+    changeObjects(1);
+}
+
+void EditorUI::onCategory(CCObject* sender)
+{
+    auto& hax = HaxManager::sharedState();
+    auto children = hax.categoryMenu->getChildren();
+    auto selected = static_cast<CCMenuItemToggler*>(sender);
+
+    for (auto i = 0 ; i < children->count() ; i++)
+    {
+        auto toggler = static_cast<CCMenuItemToggler*>(children->objectAtIndex(i));
+        toggler->toggle(false);
+        toggler->setEnabled(true);
+    }
+
+    selected->toggle(true);
+    selected->setEnabled(false);
+
+    changeObjects(selected->getTag());
+}
+
+void EditorUI::changeObjects(int category)
+{
+    auto& hax = HaxManager::sharedState();
+    auto winSize = CCDirector::sharedDirector()->getWinSize();
+
+    auto bar = getCreateButtonBar(this);
+    if (bar)
+    {
+        bar->removeFromParentAndCleanup(true);
+        bar->release();
+    }
+
+    CCArray* createBtns = getCreateButtons(this);
+    if (createBtns)
+    {
+        for (int i = 0; i < createBtns->count(); i++) {
+            CCObject* btn = createBtns->objectAtIndex(i);
+            if (btn)
+            {
+                static_cast<CCNode*>(btn)->removeFromParentAndCleanup(false);
+                // btn->release();
+            }
+        }
+    }
+    
+    std::vector<std::string> sprs;
+
+    switch (category)
+    {
+        case 1:
+            if (!hax.getModuleEnabled(ModuleID::UNLISTED_OBJECTS))
+            {
+                sprs = {
+                    TAB_1
+                };
+            } else {
+                sprs = {
+                    TAB_1,
+                    TAB_1_UNLISTED
+                }; 
+            }
+            break;
+        case 2:
+            if (!hax.getModuleEnabled(ModuleID::UNLISTED_OBJECTS))
+            {
+                sprs = {
+                    TAB_2
+                };
+            } else {
+                sprs = {
+                    TAB_2,
+                    TAB_2_UNLISTED
+                }; 
+            }
+            break;
+        case 3:
+            if (!hax.getModuleEnabled(ModuleID::UNLISTED_OBJECTS))
+            {
+                sprs = {
+                    TAB_3
+                };
+            } else {
+                sprs = {
+                    TAB_3,
+                    TAB_3_UNLISTED
+                }; 
+            }
+            break;
+        case 4:
+            if (!hax.getModuleEnabled(ModuleID::UNLISTED_OBJECTS))
+            {
+                sprs = {
+                    TAB_4
+                };
+            } else {
+                sprs = {
+                    TAB_4,
+                    TAB_4_UNLISTED
+                }; 
+            }
+            break;
+        case 5:
+            if (!hax.getModuleEnabled(ModuleID::UNLISTED_OBJECTS))
+            {
+                sprs = {
+                    TAB_5
+                };
+            } else {
+                sprs = {
+                    TAB_5,
+                    TAB_5_UNLISTED
+                }; 
+            }
+            break;
+        case 6:
+            if (!hax.getModuleEnabled(ModuleID::UNLISTED_OBJECTS))
+            {
+                sprs = {
+                    TAB_6
+                };
+            } else {
+                sprs = {
+                    TAB_6,
+                    TAB_6_UNLISTED
+                }; 
+            }
+            break;
+#if TABS > 6
+        case 7:
+            if (!hax.getModuleEnabled(ModuleID::UNLISTED_OBJECTS))
+            {
+                sprs = {
+                    TAB_7
+                };
+            } else {
+                sprs = {
+                    TAB_7,
+                    TAB_7_UNLISTED
+                }; 
+            }
+            break;
+#endif
+#if TABS > 7
+        case 8:
+            if (!hax.getModuleEnabled(ModuleID::UNLISTED_OBJECTS))
+            {
+                sprs = {
+                    TAB_8
+                };
+            } else {
+                sprs = {
+                    TAB_8,
+                    TAB_8_UNLISTED
+                }; 
+            }
+            break;
+#endif
+#if TABS > 8
+        case 9:
+            if (!hax.getModuleEnabled(ModuleID::UNLISTED_OBJECTS))
+            {
+                sprs = {
+                    TAB_9
+                };
+            } else {
+                sprs = {
+                    TAB_9,
+                    TAB_9_UNLISTED
+                }; 
+            }
+            break;
+#endif
+    }
+
+    auto arr = CCArray::create();
+    getCreateButtons(this)->removeAllObjects();
+    for (auto str : sprs)
+    {
+        arr->addObject(this->getCreateBtn(str.c_str(), 4));
+    }
+
+    #if GAME_VERSION < GV_1_6
+        auto tab = EditButtonBar::create(arr, ccp(winSize.width * 0.5 - 5, getScreenBottom() + getUnkFloat(this) - 6.f));
+    #else
+        auto tab = EditButtonBar::create(arr, ccp(winSize.width * 0.5 - 5, getScreenBottom() + getUnkFloat(this) - 6.f), true);
+    #endif
+    tab->retain();
+    // tab->goToPage(0);
+    
+    hax.createTabs[category] = tab;
+    setCreateButtonBar(this, tab);
+    this->addChild(tab, 11);
+
+    #if GAME_VERSION < GV_1_5
+    this->updateCreateMenu();
+#else
+    this->updateCreateMenu(false);
+#endif
+}
+#endif
+
+#define ADD_BTN(btn) \
+arr->addObject(btn); \
+createBtns->addObject(btn)
+
+#define CLEANUP_ARR(array) \
+for (int i = 0; i < array->count(); i++) { \
+    CCObject* btn = array->objectAtIndex(i); \
+    static_cast<CCNode*>(btn)->removeFromParentAndCleanup(false); \
+    arr->addObject(btn); \
+}
+
 void (*TRAM_EditorUI_setupCreateMenu)(EditorUI* self);
 void EditorUI_setupCreateMenu(EditorUI* self) {
     HaxManager& hax = HaxManager::sharedState();
     TRAM_EditorUI_setupCreateMenu(self);
-    if (hax.getModuleEnabled(ModuleID::UNLISTED_OBJECTS)) {
+
+#if GAME_VERSION < GV_1_7
+    if (hax.getModuleEnabled(ModuleID::CATEGORIZED_OBJECTS))
+    {
+
+        CCArray* createBtns = getCreateButtons(self);
+        for (int i = 0; i < createBtns->count(); i++) {
+            CCObject* btn = createBtns->objectAtIndex(i);
+            static_cast<CCNode*>(btn)->removeFromParentAndCleanup(false);
+            // btn->release();
+        }
+
+        EditButtonBar* bar = getCreateButtonBar(self);
+        bar->removeFromParentAndCleanup(false);
+        bar->release();
+
+        self->setupCreateTabs();
+    }
+#endif
+
+    if (hax.getModuleEnabled(ModuleID::UNLISTED_OBJECTS) && !hax.getModuleEnabled(ModuleID::CATEGORIZED_OBJECTS)) {
         auto director = CCDirector::sharedDirector();
         auto winSize = director->getWinSize();
 #if GAME_VERSION < GV_1_7
 
-        CCArray* createBtns = getCreateButtons(self);
         CCArray* fuckingArray = CCArray::create();
 
+        CCArray* createBtns = getCreateButtons(self);
         for (int i = 0; i < createBtns->count(); i++) {
             CCObject* btn = createBtns->objectAtIndex(i);
             static_cast<CCNode*>(btn)->removeFromParentAndCleanup(false);
@@ -736,14 +1049,14 @@ void EditorUI_setupCreateMenu(EditorUI* self) {
         self->updateCreateMenu(false);
 #endif
 
-#else
+#elif GAME_VERSION == GV_1_7
 
         auto bars = getCreateButtonBars(self);
         auto fuckingArray = CCArray::create();
         auto triggerPages = getBarPages(static_cast<EditButtonBar*>(bars->lastObject()));
         auto createBtns = getCreateButtons(self);
 
-        static_cast<CCNode*>(bars->objectAtIndex(3))->removeFromParentAndCleanup(true);
+        static_cast<CCNode*>(bars->objectAtIndex(PORTAL_INDEX))->removeFromParentAndCleanup(true);
 
         for (int i = 0; i < 20; i++) {
             createBtns->removeObjectAtIndex(126);
@@ -778,11 +1091,11 @@ void EditorUI_setupCreateMenu(EditorUI* self) {
         fuckingArray->addObject(sep);
         fuckingArray->addObject(self->getCreateBtn("portal_10_back_001.png", 4)); // weird ufo object thing removed in 2.0
         
-        if (bars->objectAtIndex(3)) bars->objectAtIndex(3)->release();
-        bars->removeObjectAtIndex(3);
-        auto bar = EditButtonBar::create(fuckingArray, ccp(winSize.width * 0.5 - 5, getScreenBottom() + getUnkFloat(self) - 6.f), 3, true);
+        if (bars->objectAtIndex(PORTAL_INDEX)) bars->objectAtIndex(PORTAL_INDEX)->release();
+        bars->removeObjectAtIndex(PORTAL_INDEX);
+        auto bar = EditButtonBar::create(fuckingArray, ccp(winSize.width * 0.5 - 5, getScreenBottom() + getUnkFloat(self) - 6.f), PORTAL_INDEX, true);
         self->addChild(bar, 10);
-        bars->insertObject(bar, 3);
+        bars->insertObject(bar, PORTAL_INDEX);
         bar->setVisible(false);
 
         fuckingArray->removeAllObjects();
@@ -839,7 +1152,8 @@ void EditorUI_setupCreateMenu(EditorUI* self) {
         self->selectBuildTab(lvl->m_nLastBuildTab);
         getCreateButtonBar(self)->goToPage(lvl->m_nLastBuildPage);
         self->updateCreateMenu(false);
-
+#else
+        
 #endif
     }
 }
@@ -1187,14 +1501,13 @@ void EditorUI_createMoveMenu(EditorUI* self) {
         btn->setTag(100012);
         buttons->addObject(btn);
 
-
-
         btn = self->getSpriteButton2("edit_rotate45rBtn_001.png", menu_selector(EditorUI::transformObjectCall2), nullptr, 0.9);
         btn->setTag(100014);
         buttons->addObject(btn);
         btn = self->getSpriteButton2("edit_rotate45lBtn_001.png", menu_selector(EditorUI::transformObjectCall2), nullptr, 0.9);
         btn->setTag(100013);
         buttons->addObject(btn);
+#if GAME_VERSION < GV_1_8
         btn = self->getSpriteButton2("edit_rotate22rBtn_001.png", menu_selector(EditorUI::transformObjectCall2), nullptr, 0.9);
         btn->setTag(100016);
         buttons->addObject(btn);
@@ -1220,6 +1533,7 @@ void EditorUI_createMoveMenu(EditorUI* self) {
         btn = self->getSpriteButton2("edit_rotate1lBtn_001.png", menu_selector(EditorUI::transformObjectCall2), nullptr, 0.9);
         btn->setTag(100021);
         buttons->addObject(btn);
+#endif
         btn = self->getSpriteButton2("edit_rotateResetBtn_001.png", menu_selector(EditorUI::transformObjectCall2), nullptr, 0.9);
         btn->setTag(100023);
         buttons->addObject(btn);
@@ -1229,6 +1543,24 @@ void EditorUI_createMoveMenu(EditorUI* self) {
         btn->setTag(12);
         buttons->addObject(btn);
         setEditObjectButton(self, btn);
+#endif
+
+#if GAME_VERSION > GV_1_7
+        auto dict = CCDictionary::create();
+        dict->retain();
+
+        // fix crash at toggleSpecialButtons
+        btn = self->getSpriteButton("edit_freeRotateBtn_001.png", menu_selector(EditorUI::activateRotationControl), nullptr, 0.9);
+        btn->setTag(21);
+        dict->setObject(btn, "21");
+        buttons->addObject(btn);
+
+        btn = self->getSpriteButton("edit_rotateSnapBtn_001.png", menu_selector(EditorUI::transformObjectCall), nullptr, 0.9);
+        btn->setTag(22);
+        dict->setObject(btn, "22");
+        buttons->addObject(btn);
+
+        MEMBER_BY_OFFSET(CCDictionary*, self, EditorUI__m_moveDict) = dict;
 #endif
 
         auto director = CCDirector::sharedDirector();
@@ -1424,6 +1756,8 @@ void EditorUI_destructor2(EditorUI* self) {
     hax.inEditor = false;
     setDecimals('1');
     hax.editorObjectInfo = nullptr;
+    hax.createTabs.clear();
+    hax.categoryMenu = nullptr;
     TRAM_EditorUI_destructor2(self);
 }
 
@@ -1470,7 +1804,28 @@ void EditorUI_onDeleteStartPos(EditorUI* self) {
 }
 #endif
 
-// void (*EditorUI_toggleSpecialButtons)
+#if GAME_VERSION < GV_1_7
+void (*EditorUI_toggleMode)(EditorUI*, CCNode*);
+void EditorUI_toggleMode_H(EditorUI* self, CCNode* node)
+{
+    auto& hax = HaxManager::sharedState();
+    EditorUI_toggleMode(self, node);
+
+    if (!hax.categoryMenu) return;
+
+    hax.categoryMenu->setVisible((getMode(self) == 2) ? true : false);
+    hax.categoryMenu->setEnabled((getMode(self) == 2) ? true : false);
+}
+#endif
+
+#if GAME_VERSION > GV_1_7
+void (*EditorUI_angleChanged)(EditorUI*, float);
+void EditorUI_angleChanged_H(EditorUI* self, float value)
+{
+    EditorUI_angleChanged(self, value);
+    updateObjectInfoLabel(self);
+}
+#endif
 
 void EditorUI_om() {
     Omni::hook("_ZN8EditorUI12showMaxErrorEv",
@@ -1552,5 +1907,15 @@ void EditorUI_om() {
     Omni::hook("_ZN8EditorUI8onDeleteEv", 
         reinterpret_cast<void*>(EditorUI_onDelete),
         reinterpret_cast<void**>(&TRAM_EditorUI_onDelete));
+#endif
+#if GAME_VERSION < GV_1_7
+    Omni::hook("_ZN8EditorUI10toggleModeEPN7cocos2d6CCNodeE", 
+        reinterpret_cast<void*>(EditorUI_toggleMode_H),
+        reinterpret_cast<void**>(&EditorUI_toggleMode));
+#endif
+#if GAME_VERSION > GV_1_7
+    Omni::hook("_ZN8EditorUI12angleChangedEf", 
+        reinterpret_cast<void*>(EditorUI_angleChanged_H),
+        reinterpret_cast<void**>(&EditorUI_angleChanged));
 #endif
 }

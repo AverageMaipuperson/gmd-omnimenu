@@ -22,7 +22,11 @@ bool EditorPauseLayer_init(EditorPauseLayer* self, LevelEditorLayer* editLayer) 
         hax.omniMenu->m_sMenu->setEnabled(true);
     }
 #if GAME_VERSION >= GV_1_6
+#if GAME_VERSION < GV_1_8
     CCObject* obj = self->getChildren()->objectAtIndex(2);
+#else
+    CCObject* obj = self->getChildren()->objectAtIndex(5);
+#endif
     auto label = dynamic_cast<CCLabelBMFont*>(obj);
     if (label) {
         if (hax.getModuleEnabled(ModuleID::OBJECT_LIMIT_BYPASS)) {
@@ -127,9 +131,7 @@ bool EditorPauseLayer_init(EditorPauseLayer* self, LevelEditorLayer* editLayer) 
         counterLabel->setPosition(ccp(10, winSize.height - 20));
         self->addChild(counterLabel, 1000);
 #else
-        if (label) {
-            label->setString(writer.c_str());
-        }
+        label->setString(writer.c_str());
 #endif
     }
     CCMenu* btnMenu = CCMenu::create();
@@ -254,9 +256,15 @@ void EditorPauseLayer_om() {
     Omni::hook("_ZN16EditorPauseLayer9saveLevelEv",
         reinterpret_cast<void*>(EditorPauseLayer_saveLevel),
         reinterpret_cast<void**>(&TRAM_EditorPauseLayer_saveLevel));
+#if GAME_VERSION < GV_1_7
     Omni::hook("_ZN16EditorPauseLayer8onResumeEv",
         reinterpret_cast<void*>(EditorPauseLayer_onResume_H),
         reinterpret_cast<void**>(&EditorPauseLayer_onResume));
+#else
+    Omni::hook("_ZN16EditorPauseLayer8onResumeEPN7cocos2d8CCObjectE",
+        reinterpret_cast<void*>(EditorPauseLayer_onResume_H),
+        reinterpret_cast<void**>(&EditorPauseLayer_onResume));
+#endif
     Omni::hook("_ZN16EditorPauseLayer15FLAlert_ClickedEP12FLAlertLayerb",
         reinterpret_cast<void*>(EditorPauseLayer_FLAlert_Clicked_H),
         reinterpret_cast<void**>(&EditorPauseLayer_FLAlert_Clicked));

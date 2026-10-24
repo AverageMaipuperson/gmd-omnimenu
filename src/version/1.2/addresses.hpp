@@ -33,6 +33,7 @@
 /**/ #define EditorUI__m_editObjectButton      0x1ac /**/ // EditorUI::createMoveMenu (at the bottom) (pre-1.4)
 
 /**/ #define EditorUI__m_editorLayer           0x1c4 /**/ // EditorUI::init
+/**/ #define EditorUI__m_mode                  0x1c0 /**/ // EditorUI::toggleMode
 /**/ #define EditorUI__m_selectedObject        0x248 /**/ // EditorUI::selectObject
 /**/ #define EditorUI__m_selectedObjects       0x180 /**/ // EditorUI::deselectAll 
 /**/ #define EditorUI__m_touch                 0x228 /**/ // EditorUI::onDelete

@@ -45,6 +45,7 @@ enum ModuleID {
     AUTO_BACKUP,
     AUTO_SAFE_MODE,
     RGB_COLOR_INPUTS, // Better Color Inputs
+    CATEGORIZED_OBJECTS,
     CHARACTER_FILTER_BYPASS,
     CHEAT_INDICATOR,
     COMMENT_IDS,
@@ -274,6 +275,8 @@ public:
     _ccColor3B noclipTintColor;
     std::string noclipTintOpacity;
     int savedUserID;
+    CCMenu* categoryMenu;
+    std::vector<EditButtonBar*> createTabs;
 
     bool getModuleEnabled(ModuleID id) {
         return modules[id].enabled;
@@ -944,6 +947,13 @@ private:
                     else setDecimals('1');
                 }
             });
+#if GAME_VERSION < GV_1_7
+        modules[ModuleID::CATEGORIZED_OBJECTS] = Module(
+            "categorized_objects",
+            "Categorized Objects", 
+            "categorized objects", 
+            false, ModuleCategory::Editor, [](bool _){});
+#endif
 #if GAME_VERSION < GV_1_5
         modules[ModuleID::COPY_PASTE] = Module(
             "copy_paste",

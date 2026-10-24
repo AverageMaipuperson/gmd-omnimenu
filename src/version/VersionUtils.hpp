@@ -24,6 +24,15 @@
 #define MEMBER_BY_OFFSET(type, var, offset) \
     (*reinterpret_cast<type*>(reinterpret_cast<uintptr_t>(var) + static_cast<uintptr_t>(offset)))
 
+#if GAME_VERSION > GV_1_7
+bool getDualMode(PlayLayer* pl);
+bool getDualMode();
+PlayerObject* getPlayer2(PlayLayer* pl);
+PlayerObject* getPlayer2();
+void runPCommandAction(PCommandType type, double modifier);
+CCDictionary* getMoveDict(EditorUI* ui);
+#endif
+
 uintptr_t get_address(int offset);
 
 PlayLayer* getPlayLayer();
@@ -133,6 +142,7 @@ void setCreateButtonBars(EditorUI* uiLayer, CCArray* bars);
 #endif
 float getScreenBottom();
 float getUnkFloat(EditorUI* uiLayer);
+int getMode(EditorUI* uiLayer);
 
 CCArray* getEditorSections(LevelEditorLayer* editLayer);
 int getObjectKey(GameObject* obj);

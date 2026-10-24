@@ -27,6 +27,7 @@
 /**/ #define EditorUI__m_createButtons         0x1c4 /**/ // EditorUI::getCreateBtn (at the bottom)
 /**/ #define EditorUI__m_editButtonBar         0x148 /**/ // EditorUI::createMoveMenu (at the bottom)
 /**/ #define EditorUI__m_editorLayer           0x1cc /**/ // EditorUI::init
+/**/ #define EditorUI__m_mode                  0x1c8 /**/ // EditorUI::toggleMode
 /**/ #define EditorUI__m_selectedObject        0x250 /**/ // EditorUI::selectObject
 /**/ #define EditorUI__m_selectedObjects       0x180 /**/ // EditorUI::deselectAll 
 /**/ #define EditorUI__m_touch                 0x230 /**/ // EditorUI::onDelete

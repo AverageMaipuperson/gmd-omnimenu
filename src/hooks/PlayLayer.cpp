@@ -94,7 +94,7 @@ void checkPortals()
             case 5: // ship
 #if GAME_VERSION > GV_1_4 && GAME_VERSION < GV_1_8
                 layer->switchToFlyMode(object, true, false);
-#elif GAME_VERSION < GV_1_4             
+#elif GAME_VERSION < GV_1_8             
                 layer->switchToFlyMode(object, true);
 #else
                 layer->switchToFlyMode(player, object, true, false);
@@ -171,8 +171,13 @@ void checkPortals()
     hax.doSpawnCircles = true;
 }
 
+#if GAME_VERSION < GV_1_8
 void (*TRAM_PlayLayer_destroyPlayer)(PlayLayer* self);
 void PlayLayer_destroyPlayer(PlayLayer* self) {
+#else
+void (*TRAM_PlayLayer_destroyPlayer)(PlayLayer* self, PlayerObject* player);
+void PlayLayer_destroyPlayer(PlayLayer* self, PlayerObject* player) {
+#endif
     HaxManager& hax = HaxManager::sharedState();
     if (hax.getModuleEnabled(ModuleID::NOCLIP) || hax.getModuleEnabled(ModuleID::INSTANT_COMPLETE)) {
         if (hax.lastDeadFrame < hax.frameCount)
@@ -192,7 +197,11 @@ void PlayLayer_destroyPlayer(PlayLayer* self) {
         hax.bestRunEnd = currRun;
     }
     hax.dead = true;
+#if GAME_VERSION < GV_1_8
     TRAM_PlayLayer_destroyPlayer(self);
+#else
+    TRAM_PlayLayer_destroyPlayer(self, player);
+#endif
     if (hax.completed) return;
     if (hax.getModuleEnabled(ModuleID::PRACTICE_MUSIC_HACK) || !getPlayLayerPractice(self)) {
         F_pauseBackgroundMusic();
@@ -1009,7 +1018,11 @@ void PlayLayer_lightningFlash_H(PlayLayer* self, CCPoint point, _ccColor3B color
 }
 
 void PlayLayer_om() {
+#if GAME_VERSION < GV_1_8
     Omni::hook("_ZN9PlayLayer13destroyPlayerEv", 
+#else
+Omni::hook("_ZN9PlayLayer13destroyPlayerEP12PlayerObject", 
+#endif
         reinterpret_cast<void*>(PlayLayer_destroyPlayer),
         reinterpret_cast<void**>(&TRAM_PlayLayer_destroyPlayer));
     Omni::hook("_ZN9PlayLayer18togglePracticeModeEb",

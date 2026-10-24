@@ -5,6 +5,9 @@
 #include "GameObject.hpp"
 #include "UndoObject.hpp"
 
+class LevelEditorLayer;
+inline extern LevelEditorLayer* g_levelEditorLayer = nullptr;
+
 struct OrderingData
 {
 #if GAME_VERSION < GV_1_7
@@ -19,6 +22,10 @@ class LevelEditorLayer : public cocos2d::CCLayer
 {
 public:
     static LevelEditorLayer* create(GJGameLevel* level);
+    static LevelEditorLayer* get()
+    {
+        return g_levelEditorLayer;
+    }
     bool init(GJGameLevel* level);
 
     void addToSection(GameObject* object);
@@ -32,4 +39,5 @@ public:
 #endif
     cocos2d::CCArray* objectsInRect(cocos2d::CCRect);
     void reorderObjectSection(GameObject* obj);
+    int getPlayerState() const;
 };

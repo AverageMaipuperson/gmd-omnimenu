@@ -76,4 +76,12 @@ public:
 
     void rotateObjects(float rot, int tag);
     SelectionContext getSelectionContext();
+
+    void setupCreateTabs();
+    void onCategory(CCObject*);
+    void changeObjects(int);
+
+#if GAME_VERSION > GV_1_7
+    void activateRotationControl(CCObject*);
+#endif
 };

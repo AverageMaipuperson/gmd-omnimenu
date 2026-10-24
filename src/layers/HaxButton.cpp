@@ -17,6 +17,10 @@ HaxButton* HaxButton::create() {
     return nullptr;
 }
 
+bool vectorHasMoved(const CCPoint& vector, float threshold) {
+    return (ccpLengthSQ(vector) < threshold);
+}
+
 void HaxButton::onOpenMenu(CCObject*) {
     auto haxOverlay = HaxMenu::create(this); //HaxOverlay::create(this);
     haxOverlay->setOpacity(105);
@@ -65,6 +69,7 @@ bool HaxButton::init() {
     // dispatcher->addTargetedDelegate(menu, INT_MIN, true); 
     // menu->setOpacity(128);
     this->addChild(menu);
+    this->fade(false);
     return true;
 }
 
@@ -83,11 +88,15 @@ CCPoint HaxButton::clamp(CCPoint pos) {
 
 bool HaxButton::ccTouchBegan(CCTouch* touch, CCEvent* event) {
     // touch dispatcher is dumb i had to replicate ccmenuitemspriteextra
-    if (!m_movable) return false;
+    if (!m_movable || !m_sMenu->isEnabled()) return false;
     auto location = getTouchLocation(touch);
-    // CCPoint location = CCDirector::sharedDirector()->convertToGL(touch->locationInView());
-    CCPoint localPos = m_sSprite->convertToNodeSpace(location);
-    CCLog("%f %f", localPos.x, localPos.y);
+#if GAME_VERSION < GV_1_7
+    m_start = CCDirector::sharedDirector()->convertToGL(touch->locationInView());
+#else
+    m_start = CCDirector::sharedDirector()->convertToGL(touch->getLocationInView());
+#endif
+    CCPoint localPos = m_sSprite->convertToNodeSpace(m_start);
+    // CCLog("%f %f", localPos.x, localPos.y);
     CCRect rect = CCRectMake(0, 0, m_sSprite->getContentSize().width, m_sSprite->getContentSize().height);
 #if GAME_VERSION >= GV_1_7
     if (rect.containsPoint(localPos)) {
@@ -154,12 +163,13 @@ void HaxButton::ccTouchEnded(CCTouch* touch, CCEvent* event) {
     CCRect rect = CCRectMake(0, 0, m_sSprite->getContentSize().width, m_sSprite->getContentSize().height);
     m_sSprite->unselected();
     this->fade(false);
+    CCPoint vector = ccpSub(location, m_start);
 
 #if GAME_VERSION >= GV_1_7
-    if (rect.containsPoint(localPos) && m_sMenu->isEnabled() && !m_bMoved) {
+    if ((rect.containsPoint(localPos) && m_sMenu->isEnabled()) || vectorHasMoved(vector, 100)) {
         onOpenMenu(nullptr);
 #else
-    if (CCRect::CCRectContainsPoint(rect, localPos) && m_sMenu->isEnabled() && !m_bMoved) {
+    if ((CCRect::CCRectContainsPoint(rect, localPos) && m_sMenu->isEnabled()) || vectorHasMoved(vector, 100)) {
         m_sSprite->activate();
 #endif
     }

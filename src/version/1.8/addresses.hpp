@@ -37,7 +37,8 @@
 /**/ #define EditorUI__m_selectedObject        0x238 /**/ // EditorUI::selectObject
 /**/ #define EditorUI__m_selectedObjects       0x184 /**/ // EditorUI::deselectAll 
 /**/ #define EditorUI__m_touch                 0x230 /**/ // EditorUI::onDelete
-/**/ #define EditorUI__m_unkFloat              0x24c /**/ // EditorUI::setupCreateMenu
+/**/ #define EditorUI__m_unkFloat              0x168 /**/ // EditorUI::createMoveMenu (find the last CCPoint constructor, click on it, go to the listing and find the hex right below getScreenBottom)
+/**/ #define EditorUI__m_moveDict              0x150 /**/ // EditorUI::toggleSpecialButtons (the CCDictionary*)
 
 // /**/ #define EditorUI__m_zoomOutButton         0x158 /**/ // EditorUI::init
 
@@ -49,7 +50,7 @@
 /**/ #define GameManager__m_showProgressBar    0x171 /**/ // GameManager::getShowProgressBar
 
 /**/ #define GameObject__m_objectKey           0x290 /**/ // GameObject::getObjectKey
-/**/ #define GameObject__m_particles           0x1e6 /**/ // GameObject::setOpacity
+/**/ #define GameObject__m_particles           0x1e8 /**/ // GameObject::setOpacity
 
 /**/ #define GameObject__m_radius              0x230 /**/ // GameObject::getRadius
 
@@ -87,6 +88,7 @@
 /**/ #define PlayLayer__m_cameraPos            0x274 /**/ // PlayLayer::getCameraPos
 /**/ #define PlayLayer__m_checkpoints          0x140 /**/ // PlayLayer::removeLastCheckpoint
 /**/ #define PlayLayer__m_clkTimer             0x2ac /**/ // PlayLayer::getClkTimer
+/**/ #define PlayLayer__m_dualMode             0x260 /**/ // PlayLayer::getDualMode
 /**/ #define PlayLayer__m_hazards              0x160 /**/ // PlayLayer::checkCollisions (the for loop at the bottom which checks for rect intersections and calls destroyPlayer)
 /**/ #define PlayLayer__m_isFlipped            0x258 /**/ // PlayLayer::getIsFlipped
 /**/ #define PlayLayer__m_isPractice           0x27d /**/ // PlayLayer::getPracticeMode
@@ -95,6 +97,7 @@
 /**/ #define PlayLayer__m_level                0x270 /**/ // PlayLayer::getLevel
 /**/ #define PlayLayer__m_pGlitter             0x178 /**/ // PlayLayer::toggleGlitter
 /**/ #define PlayLayer__m_playerObject         0x268 /**/ // PlayLayer::getPlayer
+/**/ #define PlayLayer__m_playerObject2        0x26c /**/ // PlayLayer::getPlayer2
 /**/ #define PlayLayer__m_progressBar          0x200 /**/ // PlayLayer::init - slidergroove2.png
 /**/ #define PlayLayer__m_sections             0x15c /**/ // PlayLayer::removeObjectFromSection
 /**/ #define PlayLayer__m_startPos             0x298 /**/ // PlayLayer::getStartPos
@@ -127,14 +130,16 @@
 /**/ #define __GameManager_isColorUnlocked  0x1b7d0c /**/ // fuck dobbyhook fuck this stupid game fuck everyone kill 7 billion people
 /**/ #define __GameManager_isIconUnlocked   0x1b7c0c /**/ // fuck dobbyhook fuck this stupid game fuck everyone kill 7 billion people
 /**/ #define __GJGameLevel_setIsVerified    0x1ebbf2 /**/
-/**/ #define clubstep_bypass                0x1faa16 /**/ // LevelPage::onPlay
-// /**/ #define __LevelEditorLayer_update_v    0x486664 /**/ // LevelEditorLayer::~
+/**/ #define clubstep_bypass                0x1faa17 /**/ // LevelPage::onPlay
+/**/ #define __LevelEditorLayer_update_v    0x508244 /**/ // LevelEditorLayer::~
+/**/ #define lel_unschedule_update          0x1ce3a6 /**/ // LevelEditorLayer::onStopPlaytest
+/**/ #define lel_unschedule_update2         0x1cdf48 /**/ // LevelEditorLayer::onPausePlaytest
 /**/ #define move_x_min                     0x1d704c /**/ // EditorUI::moveObject - 00 80 96 43
 /**/ #define move_x_max                     0x1d7050 /**/ // EditorUI::moveObject - 00 C8 2F 47
 /**/ #define move_y_max                     0x1d7058 /**/ // EditorUI::moveObject - 00 C0 C6 44
 /**/ #define move_y_min                     0x1d7054 /**/ // EditorUI::moveObject - 00 00 B6 42
-/**/ #define object_limit                   0x1ddab4 /**/ // EditorUI::onCreate DAB
-/**/ #define object_limit_duplicate         0x1de484 /**/ // EditorUI::onDuplicate
+/**/ #define object_limit                   0x1ddab5 /**/ // EditorUI::onCreate DAB
+/**/ #define object_limit_duplicate         0x1de485 /**/ // EditorUI::onDuplicate
 /**/ #define pause_edit_button              0x1df5ba /**/ // PauseLayer::customSetup
 /**/ #define pause_restart_button           0x1df6f8 /**/ // PauseLayer::customSetup
 /**/ #define place_x_max                    0x1dda60 /**/ // EditorUI::onCreateObject - 00 B9 2F 47

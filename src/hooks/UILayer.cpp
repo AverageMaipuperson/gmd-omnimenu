@@ -164,6 +164,8 @@ void UILayer::pickStartPos(int ind) {
     }
     HaxManager& hax = HaxManager::sharedState();
     auto startPoses = hax.getStartPositions();
+    CCLog("%i ; %i ; %i", hax.startPosIndex + 1, startPoses->count(), ind);
+    auto index = hax.startPosIndex + 1;
     if (ind == -1) {
         setStartPos(ccp(0, 105));
         hax.startPercent = 0;
@@ -173,7 +175,7 @@ void UILayer::pickStartPos(int ind) {
     }
     getPlayLayer()->resetLevel();
     if (ind != -1) hax.startPercent = getCurrentPercentageF();
-    hax.switcherLabel->setString(getSwitcherText().c_str());
+    hax.switcherLabel->setString(fmt::format("{}/{}", index, startPoses->count()).c_str());
 }
 
 void UILayer::createCheatIndicator() {
@@ -248,52 +250,76 @@ void UILayer::createPCommand() {
 }
 
 void UILayer::speedUp() {
+#if GAME_VERSION > GV_1_7
+    runPCommandAction(PCommandType::XVelocity, 0.5);
+#else
     PlayerObject* player = getPlayer();
     addXVelocity(player, 0.5);
     HaxManager& hax = HaxManager::sharedState();
     hax.pSpeedModified += 1;
     hax.setCheating(true);
     player->logValues();
+#endif
 }
 void UILayer::speedDown() {
+#if GAME_VERSION > GV_1_7
+    runPCommandAction(PCommandType::XVelocity, -0.5);
+#else
     PlayerObject* player = getPlayer();
     addXVelocity(player, -0.5);
     HaxManager& hax = HaxManager::sharedState();
     hax.pSpeedModified -= 1;
     hax.setCheating(true);
     player->logValues();
+#endif
 }
 void UILayer::gravityUp() {
+#if GAME_VERSION > GV_1_7
+    runPCommandAction(PCommandType::Gravity, 0.1);
+#else
     PlayerObject* player = getPlayer();
     addGravity(player, 0.1);
     HaxManager& hax = HaxManager::sharedState();
     hax.pGravityModified += 1;
     hax.setCheating(true);
     player->logValues();
+#endif
 }
 void UILayer::gravityDown() {
+#if GAME_VERSION > GV_1_7
+    runPCommandAction(PCommandType::Gravity, -0.1);
+#else
     PlayerObject* player = getPlayer();
     addGravity(player, -0.1);
     HaxManager& hax = HaxManager::sharedState();
     hax.pGravityModified -= 1;
     hax.setCheating(true);
     player->logValues();
+#endif
 }
 void UILayer::yStartUp() {
+#if GAME_VERSION > GV_1_7
+    runPCommandAction(PCommandType::YStart, 0.5);
+#else
     PlayerObject* player = getPlayer();
     addYStart(player, 0.5);
     HaxManager& hax = HaxManager::sharedState();
     hax.pYStartModified += 1;
     hax.setCheating(true);
     player->logValues();
+#endif
 }
 void UILayer::yStartDown() {
+#if GAME_VERSION > GV_1_7
+    runPCommandAction(PCommandType::XVelocity, 0.5);
+#else
     PlayerObject* player = getPlayer();
     addYStart(player, -0.5);
     HaxManager& hax = HaxManager::sharedState();
     hax.pYStartModified -= 1;
     hax.setCheating(true);
     player->logValues();
+#endif
 }
 bool (*TRAM_UILayer_init)(UILayer* self);
 bool UILayer_init(UILayer* self) {

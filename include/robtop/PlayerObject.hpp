@@ -61,4 +61,5 @@ public:
 #if GAME_VERSION > GV_1_6
     void updateTimeMod(float);
 #endif
+    CCLayer* getGameLayer() const;
 };

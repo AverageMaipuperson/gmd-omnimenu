@@ -4,7 +4,6 @@
 #include "LevelSettingsObject.hpp"
 
 // original 16k fix code: https://github.com/cierra-kb/legacy-starry-sky/blob/main/src/modules/editor.cpp
-#if GAME_VERSION < GV_1_8
 void LevelEditorLayer_update(LevelEditorLayer* self, float dt) {
     CCRect visible_rect;
     
@@ -41,6 +40,17 @@ void LevelEditorLayer_update(LevelEditorLayer* self, float dt) {
 #endif
                 if (!object->getParent()) {
                     OrderingData* s = static_cast<OrderingData*>(object->getUserData());
+
+                    int z_order = 0;
+                    if (s != nullptr) {
+                        z_order = s->z_order;
+                    } else {
+                        // Since addObjectFromString didn't create it, we create it safely right here on the heap
+                        s = new OrderingData { object->getOrderOfArrival(), object->getZOrder() };
+                        object->setUserData((void*)s);
+                        z_order = s->z_order;
+                    }
+
 
                     bn->addChild(object, s->z_order);
                     //object->setOrderOfArrival(s->order_of_arrival);
@@ -123,10 +133,11 @@ void LevelEditorLayer_update(LevelEditorLayer* self, float dt) {
     }
 #endif
 }
-#endif
 
 bool (*TRAM_LevelEditorLayer_init)(LevelEditorLayer* self, GJGameLevel* level);
 bool LevelEditorLayer_init(LevelEditorLayer* self, GJGameLevel* level) {
+    g_levelEditorLayer = self;
+
     HaxManager& hax = HaxManager::sharedState();
     if (hax.getModuleEnabled(ModuleID::OBJECT_LIMIT_BYPASS)) {
         if (hax.getModuleEnabled(ModuleID::_16K_FIX))
@@ -164,7 +175,6 @@ bool LevelEditorLayer_init(LevelEditorLayer* self, GJGameLevel* level) {
         uintptrToBytes((uintptr_t)&LevelEditorLayer_update).data(), 4);
 #endif
         CCLog("update schedule");
-        self->scheduleUpdate();
     }
 #endif
 
@@ -176,13 +186,28 @@ bool LevelEditorLayer_init(LevelEditorLayer* self, GJGameLevel* level) {
     editorObject->setAudioTrack(level->m_nAudioTrack);
 #endif
 
+    self->scheduleUpdate();
+
     return true;
 }
 
-#if GAME_VERSION < GV_1_8
+#if GAME_VERSION > GV_1_7
+void (*t_LevelEditorLayer_update)(LevelEditorLayer*, float);
+void LevelEditorLayer_update_H(LevelEditorLayer* self, float dt)
+{
+    CCLog ("LevelEditorLayer::update");
+
+    if (self->getPlayerState() == 1)
+        t_LevelEditorLayer_update(self, dt);
+
+    LevelEditorLayer_update(self, dt);
+}
+#endif
+
 void (*TRAM_LevelEditorLayer_createObjectsFromSetup)(LevelEditorLayer* self, std::string str);
 void LevelEditorLayer_createObjectsFromSetup(LevelEditorLayer* self, std::string str) {
     HaxManager& hax = HaxManager::sharedState();
+    CCLog("createObjectsFromSetup");
     if (!hax.getModuleEnabled(ModuleID::_16K_FIX)) return TRAM_LevelEditorLayer_createObjectsFromSetup(self, str);
 
     if (str.empty() || str.c_str() == " ")
@@ -225,7 +250,6 @@ void LevelEditorLayer_createObjectsFromSetup(LevelEditorLayer* self, std::string
     }
 #endif
 }
-#endif
 
 
 HitboxLayerEditor* HitboxLayerEditor::create(LevelEditorLayer* self) {
@@ -411,9 +435,12 @@ void LevelEditorLayer_om() {
     Omni::hook("_ZN16LevelEditorLayer4initEP11GJGameLevel",
         reinterpret_cast<void*>(LevelEditorLayer_init),
         reinterpret_cast<void**>(&TRAM_LevelEditorLayer_init));
-#if GAME_VERSION < GV_1_8
     Omni::hook("_ZN16LevelEditorLayer22createObjectsFromSetupESs",
         reinterpret_cast<void*>(LevelEditorLayer_createObjectsFromSetup),
         reinterpret_cast<void**>(&TRAM_LevelEditorLayer_createObjectsFromSetup));
+#if GAME_VERSION > GV_1_7
+Omni::hook("_ZN16LevelEditorLayer6updateEf",
+        reinterpret_cast<void*>(LevelEditorLayer_update_H),
+        reinterpret_cast<void**>(&t_LevelEditorLayer_update));
 #endif
 }

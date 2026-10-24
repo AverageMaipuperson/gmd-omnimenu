@@ -13,8 +13,7 @@
 /**/ #define CCTextInputNode__m_textField      0x168 /**/ // CCTextInputNode::getTextField
 /**/ #define CCEGLViewProtocol__m_screenBottom  0xe4 /**/ // cocos2d::CCEGLViewProtocol::getScreenBottom
 /**/ #define CheckpointObject__m_isFlipped     0x158 /**/ // CheckpointObject::getIsFlipped
-/**/ #define CheckpointObject__m_playerCheck01  0xec /**/ // CheckpointObject::setPlayerCheck01
-/**/ #define CheckpointObject__m_playerCheck02  0xf0 /**/ // CheckpointObject::setPlayerCheck02
+/**/ #define CheckpointObject__m_playerPos     0x12c /**/ // CheckpointObject::getPlayerPos
 /**/ #define ColorPickerPopup__m_colorWheel    0x1cc /**/ // ColorPickerPopup::selectColor
 /**/ #define ColorSelectPopup__m_colorWheel    0x1cc /**/ // ColorSelectPopup::selectColor
 /**/ #define ColorSelectPopup__m_duration      0x1e4 /**/ // ColorSelectPopup::sliderChanged
@@ -28,6 +27,7 @@
 /**/ #define EditorUI__m_createButtons         0x1bc /**/ // EditorUI::getCreateBtn (at the bottom)
 /**/ #define EditorUI__m_editButtonBar         0x148 /**/ // EditorUI::createMoveMenu (at the bottom)
 /**/ #define EditorUI__m_editorLayer           0x1c4 /**/ // EditorUI::init
+/**/ #define EditorUI__m_mode                  0x1c0 /**/ // EditorUI::toggleMode
 /**/ #define EditorUI__m_selectedObject        0x248 /**/ // EditorUI::selectObject
 /**/ #define EditorUI__m_selectedObjects       0x180 /**/ // EditorUI::deselectAll 
 /**/ #define EditorUI__m_touch                 0x228 /**/ // EditorUI::onDelete

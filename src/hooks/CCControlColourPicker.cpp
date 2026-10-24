@@ -105,12 +105,12 @@ void RGBColorInputs::createTheThings() {
     addChild(bg); 
     bg->setScale(0.9);
 
-    bg = extension::CCScale9Sprite::create("square02_001.png", CCRectMake(0,0,80,80));
-    bg->setContentSize(CCSizeMake(80, 30));
-    bg->_setZOrder(-1);
-    bg->setPosition({100, winSize.height - 120});
-    addChild(bg); 
-    bg->setScale(0.9);
+    hexBG = extension::CCScale9Sprite::create("square02_001.png", CCRectMake(0,0,80,80));
+    hexBG->setContentSize(CCSizeMake(80, 30));
+    hexBG->_setZOrder(-1);
+    hexBG->setPosition({100, winSize.height - 120});
+    addChild(hexBG);
+    hexBG->setScale(0.9);
     
     auto label = CCLabelBMFont::create("R: ", "bigFont.fnt");
     label->setPosition(ccp(55, winSize.height - 30));
@@ -130,10 +130,9 @@ void RGBColorInputs::createTheThings() {
     label = CCLabelBMFont::create("HEX: ", "bigFont.fnt");
     label->setPosition(ccp(40, winSize.height - 120));
     label->setScale(0.6f);
+    hexLabel = label;
     addChild(label);
 }
-
-
 
 void RGBColorInputs::createFTInput() {
     auto director = CCDirector::sharedDirector();
@@ -159,7 +158,11 @@ void RGBColorInputs::createFTInput() {
     label->setPosition(ccp(64, winSize.height - 120));
     label->setScale(0.35f);
     label->setAnchorPoint({1, 0.5});
-    addChild(label); 
+    addChild(label);
+    
+    hexInput->setPosition(ccp(100, winSize.height - 150));
+    hexLabel->setPosition(ccp(40, winSize.height - 150));
+    hexBG->setPosition(ccp(100, winSize.height - 150));
 }
 
 bool RGBColorInputs::init(extension::CCControlColourPicker* parent) {

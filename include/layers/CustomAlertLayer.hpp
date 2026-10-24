@@ -11,7 +11,7 @@ public:
     CCLayer* m_mainLayer;
     CCNode* m_scene;
 
-#if GAME_VERSION > GV_1_7
+#if GAME_VERSION > GV_1_6
     CC_RGBA_PROTOCOL_VTABLE
 #endif
 

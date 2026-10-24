@@ -10,6 +10,6 @@ public:
     static EditButtonBar* create(CCArray*, CCPoint, bool);
 #else
     static EditButtonBar* create(CCArray*, CCPoint, int, bool);
-    void goToPage(int page);
 #endif
+void goToPage(int page);
 };

@@ -9,6 +9,7 @@ public:
     CCMenuItemSpriteExtra* m_sSprite;
     bool m_bMoved;
     bool m_movable;
+    CCPoint m_start;
     static HaxButton* create();
     virtual bool init();
     void onOpenMenu(CCObject*);

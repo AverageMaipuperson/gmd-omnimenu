@@ -16,6 +16,7 @@
 #include "LevelBrowserLayer.hpp"
 #include "LeaderboardsLayer.hpp"
 #include "CheckpointObject.hpp"
+#include "HaxManager.hpp"
 #if GAME_VERSION > GV_1_2
 #include "ObjectToolbox.hpp"
 #endif
@@ -544,6 +545,12 @@ float getScreenBottom() {
 float getUnkFloat(EditorUI* uiLayer) {
     return MEMBER_BY_OFFSET(float, uiLayer, EditorUI__m_unkFloat);
 }
+#if GAME_VERSION < GV_1_7
+int getMode(EditorUI* uiLayer)
+{
+    return MEMBER_BY_OFFSET(int, uiLayer, EditorUI__m_mode);
+}
+#endif
 CCArray* getEditorSections(LevelEditorLayer* editLayer) {
     return MEMBER_BY_OFFSET(CCArray*, editLayer, LevelEditorLayer__m_sections);
 }
@@ -1099,3 +1106,68 @@ void setShaderProgram(CCNode* self, CCGLProgram* program)
 {
     MEMBER_BY_OFFSET(CCGLProgram*, self, 0xbc) = program;
 }
+
+#if GAME_VERSION > GV_1_7
+
+bool getDualMode(PlayLayer* pl)
+{
+    return MEMBER_BY_OFFSET(bool, pl, PlayLayer__m_dualMode);
+}
+
+bool getDualMode()
+{
+    return getDualMode(getPlayLayer());
+}
+
+PlayerObject* getPlayer2(PlayLayer* pl)
+{
+    return MEMBER_BY_OFFSET(PlayerObject*, pl, PlayLayer__m_playerObject2);
+}
+
+PlayerObject* getPlayer2()
+{
+    return getPlayer2(getPlayLayer());
+}
+
+void runPCommandAction(PCommandType type, double modifier)
+{
+    auto& hax = HaxManager::sharedState();
+    auto player = getPlayer();
+    auto player2 = getPlayer2();
+
+    switch (type)
+    {
+        case PCommandType::XVelocity:
+            addXVelocity(player, modifier);
+            if (getDualMode())
+                addXVelocity(player2, modifier);
+
+            hax.pSpeedModified += modifier * 2;
+            break;
+        case PCommandType::Gravity:
+            addGravity(player, modifier);
+            if (getDualMode())
+                addGravity(player2, modifier);
+
+            hax.pGravityModified += modifier * 10;
+            break;
+        case PCommandType::YStart:
+            addYStart(player, modifier);
+            if (getDualMode())
+                addYStart(player2, modifier);
+
+            hax.pYStartModified += modifier * 2;
+    }
+
+    player->logValues();
+    if (getDualMode())
+        player2->logValues();
+
+    hax.setCheating(true);
+}
+
+CCDictionary* getMoveDict(EditorUI* ui)
+{
+    return MEMBER_BY_OFFSET(CCDictionary*, ui, EditorUI__m_moveDict);
+}
+#endif
